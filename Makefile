@@ -20,7 +20,7 @@ clean:
 # 'egrep' command included below mitigates both problems, sort of.
 # (Still has a problem with error / success getting backwards due to
 # the semantics of 'grep'.)
-vtj1.srec: vtj1.asm vtj1vers.asm vtj1-config.asm
+vtj1.srec: vtj1.asm vtj1-config.asm
 	./vtj1vers.tcl
 	-crasm -l -x -o vtj1.srec vtj1.asm | \
 		egrep '^(ERRORS|WARNINGS): *[1-9]|^>+ +[0-9]+ ERROR:|Abs END_OF_CODE'
