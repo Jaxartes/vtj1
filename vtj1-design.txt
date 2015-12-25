@@ -1,0 +1,920 @@
+Jeremy Dilatush, starting April 2015
+vtj1-design.txt
+Interfaces, internals, and plans for the VTJ-1 terminal.  This isn't
+a comprehensive design, but notes summarizing aspects of it.
+See also vtj1-overview.txt.
+
+License terms for this document: see the file "COPYING" included with
+the distribution.
+
++-+-----------------+-+
+| | Basic notations | |
++-+-----------------+-+
+
+In this file and the other files in the project I use a number of notations
+that are more or less standard throughout my work, but many are idiosyncratic
+to me:
+    + In documentation, "to do" items are marked with three asterisks (*).
+    + In code, they're marked with three X's.  Lower priority or longer
+    term ones are sometimes marked with three Y's instead.
+    + Dates are often written in the form YYYY/MMM/DD
+    + The prefix '$' refers to hexadecimal numbers in many places.  Nowadays
+    the C language notation '0x' is more familiar, but at one time '$' was
+    widely used with 6502 assembly code.  Example: $4a = 0x4a = 74 = 'J'.
+    + In description of control character sequences, "^A" means "control-A"
+    (character code 1).  "^[" means "escape" (character code 27).
+
+Some additional notations largely limited to this file:
+    NYI - not yet implemented
+        Things I've written up in the design but haven't actually coded.
+    INT - implemented not tested
+        Things I've coded but haven't don't most of the testing yet.
+    MNI - might not implement, haven't decided
+        Things I've written up here to keep track of them but am considering
+        not even doing.  Admittedly, *anything* might turn out that way,
+        even things I've already done.  But for some things it's worth
+        identifying as such.
+    IHI - implemented has issues
+        A variant of INT: I've done some testing and know about some
+        particular problems.
+    OK - implemented and seems ok
+        This notation is not used everywhere.
+
++-+---------------+-+
+| | List of files | |
++-+---------------+-+
+
+A probably incomplete list of files I've committed to GIT as part of this.
+With brief descriptions; organized by conceptual component.
+    6502 CPU implementation, by Arlet Ottens
+    (https://github.com/Arlet/verilog-6502)
+        ALU.v
+        cpu.v
+    My cores used in VTJ-1
+        brg.v - select a pulse train at the desired baud rate
+        misc.v - Various small cores.
+        vtj1.v - Top level, brings the whole project together.
+            vtj1.ucf - pin assignments for Papilio Pro + Arcade MegaWing boards
+        vtj1_clock.v - Generates clock signal.  On Papilio Pro, can generate
+            clocks at about 25, 50, or 75MHz from the board's 32MHz clock input.
+        vtj1_gpio.v - Buttons and lights.
+        vtj1_ps2.v - Keyboard (or mouse) interface.
+        vtj1_sysc.v - Interrupt (IRQ) manager.
+        vtj1_uart.v - Serial port.
+        vtj1_video.v - 640x480 pixel, text-mode video generator.
+        vtj1_vtt.v - Monitors timings of vtj1_video.v and of the CPU.
+    A tool to use for loading new code
+        reload.asm - the FPGA-side part of it, in 6502 assembly
+        reload.tcl - the host-side part of it
+    Main software for the project
+        vtj1.asm - 6502 assembly code for the VTJ-1 device
+    Early or limited-scope test programs
+        check_sum_squares.tcl
+        raget_test.asm
+        tst1.asm
+        tst2.asm
+        tst3.asm
+        tst3_analysis1.txt
+        tst4.asm
+        tst5.asm
+        tst6bbulk.asm
+        tst7ram.asm
+        tst8gpio.asm
+        tst9video.asm
+        tst9_get.tcl
+        tst9_analyze.tcl
+        tst10cpat.asm
+        tst11scrollrgn.tcl - tests the ^[[...r escape sequence
+        tst12ed.tcl - tests the "ED" (screen erase) escape sequence
+        tst13resets.tcl - tests resetting the terminal
+        tst14cus.tcl
+        tst15curs.tcl
+        tst17xon.asm
+    Other development and test tools
+        srec2memh.tcl - convert assembler output to a form usable with
+            $readmemh() in Verilog
+        testpats.tcl - Send test patterns to VTJ-1 to display things.
+        vtj1fonter.tcl - convert bitmap fonts to VTJ-1's font.mem
+        vtt_analyze.tcl - timing tester, hostside companion of vtj1_video.v
+        "booty" - used before I developed the "reload" program:
+            bootloader-idea.txt - describes its protocol
+            booty.asm - the FPGA-side part of it, in 6502 assembly
+            bootyh0.tcl - primitive version of the host-side part of it
+            bootyh.tcl - working version of the host-side part of it
+        tst16fakey.tcl - tests keyboard handling, without a keyboard
+    Data files
+        font.mem - Font used in the VTJ-1 core
+        rom.mem - Code to include in the VTJ-1 core
+        scancodes2.csv - Table of keyboard scan codes
+        scancodes2.html - Web page from which scancodes2.csv was derived
+    Other
+        vtj1-notes.txt - Running notes during development process
+        vtj1-overview.txt - Overview of the VTJ-1 project
+
++-+--------------------------+-+
+| | Build/install procedures | |
++-+--------------------------+-+
+
+This is a list of the procedures to do various things that come up as
+part of developing and installing VTJ-1:
+    + General notes
+        - I use Linux as my build environment.  You can make other systems
+        work, but Linux will be easier.
+        - I depend on the following tools (and probably many others):
+            make -- to script builds
+            Tcl -- for test scripting and VTJ-1's custom tools
+            crasm -- assembler
+            Xilinx ISE -- for building the bitfile; if you port VTJ-1
+                to run on a different FPGA architecture you'd end up
+                using some other vendor tools in place of ISE
+        - The current makefile wraps up all the regular build tasks except
+        one:  Building the RTL in Xilinx ISE or the equivalent.  You do
+        that manually as the last step.
+    + Configuration (settings which control the hardware and software)
+        - You can change various settings used by VTJ-1's internals,
+        such as CPU clock rate, default baud rate, memory and font sizes, etc.
+        - To change those settings:
+            . Edit vtj1-config.txt, paying attention to the comments in it
+            . Then run 'tclsh vtj1-config-gen.tcl'
+            . And rebuild the software and the "hardware" (RTL) to use the new
+            settings
+            . Behind the scenes, here's what's happening:
+                * The script vtj1-config-gen.tcl reads vtj1-config.txt
+                and interprets the data within it
+                * It writes three files as a result
+                * vtj1-config.v is in Verilog, with "hardware" (RTL) settings
+                * vtj1-config.asm is in 6502 assembly language with software
+                settings
+                * vtj1-config.cooked is in the same format as vtj1-config.txt,
+                but rather simplified, for reading by scripts
+    + Fonts
+        - VTJ-1 takes bitmap fonts in its own format.  A script has
+        been provided to convert fonts to that format: vtj1fonter.tcl.
+        The easiest way to run it is with 'make font.mem'.  The particular
+        font in question is selected by editing the font= entry in
+        vtj1-config.txt and running 'make config'.
+        - The script vtj1fonter.tcl converts a bitmap font into
+        a font for VTJ-1 to use; it's run via 'make font.mem':
+            . VTJ-1 can accept 8x10, 8x12, and 8x16 pixel fonts
+            (only 8x12 and 8x16 have been tested, and the script would need
+            some changes to add an 8x10 fonts)
+            . It knows about a few different fonts; others could be added
+            by editing the "font database" section of the script (the
+            big 'set db { ... }' block).
+            . By convention, the fonts whose names end with "-vt" are
+            the ones for use with VTJ-1.  Other fonts found in vtj1fonter.tcl
+            are just used for testing, and for developing the "-vt" fonts.
+            . see comments in vtj1fonter.tcl itself regarding command line
+            syntax
+            . It currently has entries for:
+                fnt=lat1-12-vt -- Adapts one of the Linux console fonts
+                    into an 8x12 pixel font for VTJ-1.  I used this one
+                    for much of my development and I like it, but I'm not
+                    quite sure about the legalities of redistributing it with
+                    non-GPL software.
+                fnt=sony-8x16-vt -- Adapts one of the common X11 terminal
+                    fonts into an 8x16 pixel font for VTJ-1.  I've used
+                    this font for almost two decades.  I like it; some
+                    people don't.  It isn't a very "console-like" style.
+                fnt=cafe-12-vt -- Adapts the "cafe.f12" font from
+                    the "fntcol16" collection.
+                fnt=freebsd-boot-font-vt -- Adapts a font used by the
+                    FreeBSD kernel at boot time, included with VTJ-1.
+            . it can also produce a bitmap image for use in examining and
+            checking the font it produces:
+                tclsh vtj1fonter.tcl out=x.pbm img=1 fnt=lat1-12-vt
+            . note that the source for lat1-12-vt, part of the Linux console
+            data and not distributed with VTJ-1, may be subject to GPL
+        - After generating a new font, you need to re-generate the "hardware"
+        (RTL)
+        - VTJ-1's font format depends on the 'font_256_chars' configuration
+        setting.  vtj1fonter.tcl can generate either format, depending on
+        that setting:
+            . font_256_chars=0
+                font.mem will have 128 characters in 2048 lines of text
+                representing 2k bytes of data.
+            . font_256_chars=1
+                font.mem will have 256 characters in 4096 lines of text
+                representing 4k bytes of data.
+    + "Hardware" (the image loaded onto the FPGA)
+        - Use FPGA-specific tools for this.  I have been using Xilinx ISE.
+        - The top level module in VTJ-1 is vtj1.v.  If/when VTJ-1 is integrated
+        into other designs they'll have their own top level modules
+        - it needs:
+            . various files (mostly .v files) included in the source code
+            . also font.mem (see "Fonts") and rom.mem (see "Software")
+        - I haven't included the ISE build files I use (vtj1.gise, vtj1.xise).
+        It should be fairly straightforward to create your own in ISE.
+        My usual technique is:
+            . create a new project in ISE
+            . add the top level source (in this case vtj1.v) to it
+            . add the UCF file (vtj1.ucf) to it
+            . as long as it's still missing things, add the appropriate
+            sources (*.v files)
+        - loading the resulting file onto the FPGA is also hardware-dependent;
+        on my setup I use:
+            sudo ~/papilio/papilio-prog -vf vtj1.bit
+    + Software
+        - Most of VTJ-1 is in the program vtj1.asm
+        - To assemble:
+            . use the command "make vtj1.asm"
+            . unfortunately, it currently doesn't recognize errors on its
+            own, so you have to look for error messages in its output
+            . the assembler used is "crasm"
+        - The above produces a file "vtj1.srec"
+        - Then the command "make rom.mem" converts that into a file,
+        "rom.mem", which can be incorporated when building the "hardware",
+        see above.
+        - To load it onto a currently running FPGA:
+            . sudo tclsh reload.tcl < vtj1.srec
+            . you may set the serial port device with dev=
+            . or the baud rate with baud= 
+            . default /dev/ttyUSB1 & 115200 respectively
+            . This requires that the "developer" escape sequences be
+            enabled *before* reloading; set devel_escapes=1 in vtj1-config.txt
+
+Notes on troubleshooting:
+    + Doing anything with an FPGA requires a lot of troubleshooting
+    + If your host computer & VTJ-1 are using different baud rates, it
+    won't work.  Sometimes, if the computer doesn't like the baud rate you
+    choose, it'll quietly pick a different one.
+    + If the FPGA is not loaded properly, or the VGA signal goes out on
+    the wrong pins, or the VTJ-1 software has crashed:  You will see nothing
+    on the display.
+    + Sometimes, after changing VTJ-1's configuration settings, I find I need
+    to restart ISE for it to build successfully/correctly.
+
++-+-------------------------------------+-+
+| | System memory map and I/O interface | |
++-+-------------------------------------+-+
+
+Summary of the memory locations seen by the 6502 CPU, and of related
+interfacing such as IRQ lines.
+
+    $0000 - $03ff -- 1kB general purpose RAM
+        $0000 - $00ff -- zero page
+        $0100 - $01ff -- stack
+        $0200 - $03ff -- other uses
+        $0400 - $07ff -- doesn't normally exist, but "big_ram=1"
+            in vtj1-config.txt can change that if desired
+    $8000 - $9fff -- 8kB text RAM
+        This contains the data displayed on the screen.
+        For each character cell, it has two bytes as follows:
+        Low byte:
+            &$ff - character code
+        High byte:
+            &$07 - foreground color (R = $01, G = $02, B = $04)
+            &$08 - brighten foreground color
+            &$70 - background color
+            &$80 - underline
+        Character cells for a row of 80 are adjacent in sequence.
+        But rows aren't necessarily in any particular order.
+    $a000 - $afff -- 2kB font RAM (or 4kB)
+        This contains character images for the character set to be displayed.
+        The character set has 128 (or 256) characters.  To enable 256
+        character fonts you have to:
+            . you have to regenerate your fonts for the right size
+            using the font_256_chars= parameter to vtj1fonter.tcl
+            . you have to define font_256_chars= in vtj1-config.txt
+        For each pixel row of each character, it has 8 bits.
+        The $80 bit is the leftmost, the $01 bit is the rightmost.
+        A 1 bit of course is foreground, 0 is background.
+        Addressing:
+            Take the character code
+            Add num-chars * the current pixel row within the font
+            Add $a000
+    $b000 - $bfff -- I/O space
+        Divided into 16 "slots" for 16 devices.
+        The first 8 devices are hard coded.
+        The last 8 devices are meant to be "serial" devices of various types,
+        though in practice there won't be nearly that many.
+        Each slot also has two IRQ lines: "alpha" and "beta".
+
+        $b000 - $b0ff -- slot zero: system control
+            alpha IRQ -- timer, see $b080
+            beta IRQ -- not connected
+            $b000 -- interrupt control: enable slot 0-7s' alpha IRQs
+                (slot 0 is &$01, slot 7 is &$80)
+            $b001 -- interrupt control: enable slot 8-15s' alpha IRQs
+            $b008 -- interrupt control: enable slot 0-7s' beta IRQs
+            $b009 -- interrupt control: enable slot 8-15s' beta IRQs
+            $b040 -- interrupt pending on slot 0-7s' alpha IRQs
+                1 if interrupt is pending; to stop the interrupt, clear up
+                the condition in the device that issued it
+            $b041 -- interrupt pending on slot 8-15s' alpha IRQs
+            $b048 -- interrupt pending on slot 0-7s' beta IRQs
+            $b049 -- interrupt pending on slot 8-15s' beta IRQs
+            $b080 -- interrupt priority encoding
+                Read only: the least valued of the following that applies:
+                    $ff -- used to indicate no interrupt
+                    $00 - $0f -- alpha interrupt of the given numbered
+                                 slot is pending & enabled
+                    $10 - $1f -- beta interrupt of the given numbered
+                                 slot is pending & enabled
+            $b0c0 -- timer derived from baud rate generation (alpha IRQ)
+                &$0f -- divide base baud rate (921,600) by 2^this
+                &$10 -- divide that baud rate by 3
+                writing to this clears the pending interrupt
+        $b100 - $b1ff -- slot one: video output
+            The video "hardware" generates the actual output and the horizontal
+            timing signals.  The software, in turn, does all the vertical
+            part, writing to a series of registers that will be used for
+            the next scan line.  An interrupt signals that it's time to
+            refill those registers.
+
+            alpha IRQ -- when it's time for a new row's data ($b100-$b101)
+            beta IRQ -- not connected
+            $b100 -- scan line control byte 0: essential part
+                &$0f -- what pixel row, of the font, to use
+                &$10 -- double width pixels and characters
+                &$20 -- this line is where underlines go
+                    (that is, enhancement bit substitutes foreground
+                    for every pixel)
+                &$40 -- enable video output
+                &$80 -- vertical sync value (0 = sync pulse; 1 = normal)
+            $b101 -- scan line control byte 1: text data address
+                address within text RAM of first char cell of the row,
+                in 32 byte (16 cell) units
+            $b102 -- special commands and status
+                &$0f -- read to find out if sanity checks have failed
+                    $00 -- ok
+                    $05 -- failed to update scan line info in time
+                    $0a -- enabled video output during sync pulse
+                write commands:
+                    $07 -- clear the sanity check failure
+                    $0e -- change the flag bit $10
+                    $0f -- change the flag bit $20
+                &$10 -- inverse video flag: if 1, swaps FG & BG
+                    to write this, use command $0e
+                &$20 -- another inverse video flag: if 1, swaps FG & BG
+                    to write this, use command $0f
+                    the reason there are two such flags, is to make visible
+                    bell easier to implement
+
+            Performs various sanity checks (I might make those compile
+            time removable):
+                . update in time for each scan line
+                . video output not enabled during sync pulse
+        $b200 - $b2ff -- slot two: "GPIO" - LEDs, buttons, and other
+                         fairly simple signals
+            alpha IRQ -- not connected
+            beta IRQ -- not connected
+            $b200 &7 -- number of LEDs present
+            $b201 &7 -- number of buttons present
+            $b280 &31 -- write LED state
+            $b281 &15 -- read button state (1 = down, 0 = up)
+            $b282 -- special features control:
+                    "rom" writeability if supported
+                    audio beep if supported
+                &31: "command" to perform:
+                    10 - writeable
+                    15 - beep start
+                    20 - read-only
+                    25 - beep stop
+                    It's write only.  I chose to make it that way so that
+                    if not used it might get optimized away.
+        $b700 - $b7ff -- slot seven: video timing tester
+            This compile time removable and is not needed at all in order
+            to use the product.  Its purpose is to help test the
+            video timings generated.  And other vaguely related kinds
+            of monitoring.
+
+            $b700 &$07 -- primary channel to monitor
+                $00 - vsync
+                $01 - hsync
+                $02 - pe (pixel enable pulse train)
+                $04 - red nonzero
+                $05 - green nonzero
+                $06 - blue nonzero
+            $b700 &$70 -- secondary channel to monitor
+            $b701 -- logic function to combine them to the value being
+                     monitored
+                Bit meanings:
+                    $01 - what if primary = 0 & secondary = 0
+                    $02 - what if primary = 1 & secondary = 0
+                    $04 - what if primary = 0 & secondary = 1
+                    $08 - what if primary = 1 & secondary = 1
+                Examples
+                    $05 - NOT primary
+                    $08 - primary AND secondary
+                    $09 - primary != secondary
+                    $0a - primary
+                    $0e - primary OR secondary
+            $b704-$b707 -- 32 bit counter, little endian:
+                number of times the threshold was met
+            $b708-$b70b -- 32 bit counter, little endian:
+                number of clock cycles with interrupts enabled
+            $b70c-$b70f -- 32 bit counter, little endian:
+                number of clock cycles with interrupts disabled
+            $b710-$b713 -- count threshold, little endian
+                what's counted will be the number of runs of
+                combined logic function == 1 for at least that many clock
+                cycles
+            Note: The three counters are not read directly, instead
+            the values of all three are latched when you try to write to
+            any of them.
+        $b800 - $b8ff -- slot for first serial port, connection to computer
+            alpha IRQ -- when some data can be read
+            beta IRQ -- when some data can be written
+            $00 -- reserved
+                This originally held a device discovery byte, but I
+                got rid of it.
+                As a compile-time option, it can hold a count of bytes
+                received but lost due to the one-byte input FIFO overflowing.
+            $01 -- (write) transmit a byte
+                   (read) has nothing
+            $02 -- (read) last byte received
+                   (write) anything, to remove that byte
+            $03 -- device status
+                &$01 (read) the last "byte" received was an exception;
+                    the value in $02 will indicate the exception;
+                    exception codes are as follows:
+                        0 - a "break" has been received
+            $04 -- transmit control
+                &$0f -- divide base baud rate (921,600) by 2^this
+                &$10 -- divide that baud rate by 3
+            $05 -- more transmit control
+                &$07 -- not used; may one day control parity
+                        perhaps as follows:
+                        &$01 -- enable parity
+                        &$06 -- sense of parity
+                            $00 -- space
+                            $02 -- mark
+                            $04 -- even
+                            $06 -- odd
+                &$10 -- extra stop bit
+                &$20 -- not used; may one day control 7/8 bits per byte
+                    where '1' means 8 bits per byte
+                &$40 -- transmit a "break"
+                        have to hold this high long enough to make it happen
+            $06 -- receive control
+                &$0f -- divide base baud rate (921,600) by 2^this
+                &$10 -- divide that baud rate by 3
+            $07 -- more receive control
+                &$07 -- not used; may one day control parity
+                        perhaps as follows:
+                        &$01 -- enable parity
+                        &$06 -- sense of parity
+                            $00 -- accept but ignore
+                            $02 -- accept but ignore
+                            $04 -- even
+                            $06 -- odd
+                &$20 -- not used; may one day control 7/8 bits per byte
+                    where '1' means 8 bits per byte
+        $bc00 - $bcff -- slot for first PS/2 port, connection to keyboard
+            Interface is similar to the serial port, not the same.
+            Also note: If you don't have a keyboard hooked up, then
+            when you try to transmit bytes to the (nonexistent) device,
+            it will never complete.  Take care lest your software hang
+            as a result.
+            alpha IRQ - when some data can be read
+            beta IRQ - when some data can be written
+            $00 -- reserved
+            $01 -- (write) transmit a byte
+                   (read) has nothing
+            $02 -- (read) last byte received
+                   (write) anything, to remove that byte
+            $03 -- device status
+                &$e0 (read) exception bits, a "1" for each that has
+                    occurred and not been cleared: (INT)
+                        $20 - TX bad ACK bit from target
+                        $40 - RX fifo overflow
+                        $80 - RX parity mismatch
+                &$e0 (write) write a "1" to clear the exception bit (INT)
+            $04 -- reserved
+            $05 -- reserved
+            $06 -- reserved
+            $07 -- reserved
+    $c000 - $dfff -- doesn't normally exist, but can be enabled by
+        big_rom=1 in vtj1-config.txt
+    $e000 - $ffff -- program ROM (8kB)
+
++-+-----------------------------------------+-+
+| | Escape sequences and control characters | |
++-+-----------------------------------------+-+
+
+A summary of the control characters and escape sequences I've got defined,
+where VTJ-1 is on the receiving end.  Mostly these derive from the
+VT102 manual, chapter 5 (http://www.vt100.net/docs/vt102-ug/chapter5.html).
+The ECMA-48 standard is also a relevant reference.
+
+Characters by code:
+    0 - NUL - null character, intentionally ignored OK
+    1-4 - unimplemented control chars, produce checkerboard OK
+    5 - ENQ - request answerback message; unimplemented ignored OK
+    6 - unimplemented control chars, produce checkerboard OK
+    7 - BEL - bell sound or visual substitute OK
+    8 - BS - backspace control character OK
+    9 - HT - horizontal tab character OK
+    10 - LF - line feed (newline) character OK
+    11 - VT - vertical tab, same as newline OK
+    12 - FF - form feed, same as newline OK
+    13 - CR - carriage return OK
+    14 - SO - select G1 character set OK
+    15 - SI - select G0 character set OK
+    16 - unimplemented control chars, produce checkerboard OK
+    17 - XON - resume/continue transmitting characters MNI
+        This is implemented & OK on the TX side (transmitting XON when the
+        buffer is not too full) but not on the RX side.  Keyboard isn't
+        likely to go faster than the host can keep up with so it's not
+        a priority.
+    18 - unimplemented control chars, produce checkerboard OK
+    19 - XOFF - stop transmitting characters (except XON/XOFF) MNI
+        See comments for 17 - XON.
+    20-21 - unimplemented control chars, produce checkerboard OK
+    22 - synchronous idle, intentionally ignored like NUL; OK
+    23 - unimplemented control chars, produce checkerboard OK
+    24 - CAN - cancels pending escape sequence OK
+    25 - unimplemented control chars, produce checkerboard OK
+    26 - SUB - cancels pending escape sequence OK
+    27 - ESC - escape; begins escape sequence, see below OK
+    28-31 - unimplemented control chars, produce checkerboard OK
+    32-126 - Printable ASCII - Usually displayed on screen.
+    127 - DEL - Does nothing on this end. OK
+    128-154 - Unimplemented non-ASCII chars, produce checkerboard OK
+    155 - Alternative form of 27 91, start of a lot of escape sequences OK
+    156-255 - Unimplemented non-ASCII chars, produce checkerboard OK
+A mode setting, made through the menu, alters the behavior of
+bytes 128-255 by converting them into bytes 0-127.
+
+Escape sequences:
+    ^[#3 - row formatting: double width double height upper half OK
+    ^[#4 - row formatting: double width double height lower half OK
+    ^[#5 - row formatting: single width single height OK
+    ^[#6 - row formatting: double width single height OK
+    ^[#8 - fill screen with 'E' OK
+    ^[[...A - "CUU" cursor up $1 lines to top margin OK
+    ^[[...B - "CUD" cursor down $1 lines to bottom margin OK
+    ^[[c - Device Attributes (DA) OK
+        Returns ^[[?6c which means "VT102".
+        The Linux console returns the same.
+        "DECID" ^[Z is a synonym.
+        ^[[0c is a synonym; other parameter values do nothing.
+    ^[[...C - "CUF" cursor right $1 cols to right margin OK
+    ^[[...D - "CUB" cursor left $1 cols to left margin OK
+    ^[[...f - "HVP" same as "CUP" (^[[...H) which see OK
+    ^[[...g - clear horizontal tab stops
+        0 - at current cursor position OK
+        3 - all horizontal tab stops OK
+    ^[[...H - "CUP" cursor position, row $1 column $2 OK
+    ^[[...J - "ED" erase screen OK
+        0 - erase from cursor down
+        1 - erase from cursor up
+        2 - erase all lines
+    ^[[...K - "EL" line erase OK
+        0 - from cursor to end of line
+        1 - beginning of line to cursor
+        2 - entire line
+    ^[[...L - "IL" insert $1 lines from cursor OK
+    ^[[...m - character formatting
+        0 - default formatting OK
+        1 - brighten foreground OK
+        4 - underline OK
+        7 - inverse video OK
+        22 - no bold OK
+        24 - no underline OK
+        27 - no inverse OK
+        30-37 - foreground colors OK
+        39 - default foreground OK
+        40-47 - background colors OK
+        49 - default background OK
+    ^[[...M - "DL" delete $1 lines from cursor OK
+    ^[[...n - device status report (DSR)
+        5 - terminal status, responds ^[[0n OK
+        6 - cursor position, responds ^[[...R OK
+        ?15n - printer status MNI
+    ^[[...P - delete $1 characters from cursor OK
+        Note: WRT character attributes at end of line, there are three ways:
+            VT102 doc: says it leaves what was there, there
+            VT220 doc, VT510 doc, Mac OS X Terminal: zero attributes
+            xterm, Linux console: currently set attributes
+        Chose the third one.
+    ^[[...q - programmable LED control OK
+        This imitates the Linux console, not VT102.  VT102 had only
+        one programmable LED, "L1".
+        ^[[0q - clears all programmable LEDs
+        ^[[1q - sets Scroll Lock LED
+        ^[[2q - sets Num Lock LED
+        ^[[3q - sets Caps Lock LED
+            Note that for the three LEDs on the keyboard, they're also
+            set/cleared by pressing those keys
+        ^[[4q - sets the first onboard LED if any
+        ^[[5q - sets the second onboard LED if any
+        etc
+    ^[[...r - "DECSTBM" set top & bottom of scroll region, rows $1 - $2 OK
+    ^[[...| - VTJ-1 private "developer" sequences; these may be disabled
+              in vtj1-config.txt with devel_escapes=0, and probably should
+              on production systems
+        ^[[23| - transmit a code timing report OK
+        ^[[46| - clear any video error state OK
+        ^[[69;addr| - read from memory at decimal address OK
+        ^[[92;addr;byte| - write to memory, decimal value at decimal address OK
+        ^[[115;int| - echo an integer in hex OK
+        ^[[138| - identify rows mode OK
+            will mark each row in text RAM with its row number 00-50
+            on the left edge, white on black
+        ^[[161| - from now on, trasmit each byte received from keyboard
+            in hex surrounded by square brackets OK
+        ^[[184;...| - pretend the keyboard has transmitted one or more bytes OK
+        ^[[207;val| - set programmable delay on every input event OK
+        ^[[253;addr| - execute code at given address OK
+    ^[[=...l or h - reset/set VTJ-1 private mode
+        1 - show checkerboard glyph on some control code errors
+            (has no effect on showing the checkerboard on keyboard errors)
+            (default: on) OK
+        2 - colors settable via 'm' sequence (default:on) MNI
+        3 - cursor is a block instead of underline (default: off) OK
+        4 - char 7 (BEL) produces a screen flash (default: on) OK
+        5 - char 7 (BEL) produces a beep (default: on) OK
+    ^[[?...l or h - reset/set DEC private mode
+        1 - cursor key mode OK
+        2 - ANSI mode NYI
+            You disable this mode to go to VT52 emulation.
+            Enabling it doesn't do anything.
+        5 - screenwise reverse video OK
+        6 - origin mode OK
+        7 - DECAWM auto wrap mode OK
+            Enabled by default.  When disabled, if you write past the
+            right edge of the screen, you're just stuck at the right
+            edge of the screen until you hit newline or do something
+            else to move the cursor.  (This is the behavior documented
+            in the VT102 manual and seen on the Linux and NetBSD consoles.
+            Some popular terminal emulators do it differently.)
+        8 - "DECARM" auto repeat keys IHI
+            If this works for your keyboard, let me know.  It doesn't work
+            for mine.
+    ^[[...l or h - reset/set ANSI defined mode
+        2 - lock keyboard OK
+            In this mode, characters generated from the keyboard are lost
+            instead of transmitting them to the host computer.  Other
+            effects of the keys (turning caps lock on/off, entering
+            menu mode) still work
+        3 - display control chars MNI
+        4 - insert mode OK
+        12 - no local echo OK
+        20 - line feed / new line mode OK
+            set: characters LF, FF, VT cause both a line feed and carriage
+                return; return key transmits CR and LF
+            reset: they cause only a line feed;
+                return key transmits only a CR
+        21 - ^[[...m does replace MNI
+    ^[(A - set G0 char set to UK OK
+    ^[(B - set G0 char set to US OK
+    ^[(0 - set G0 char set to special / line drawing OK
+    ^[(1 - set G0 char set to alternate ROM OK
+    ^[(2 - set G0 char set to alternate ROM special OK
+    ^[)A - set G1 char set to UK OK
+    ^[)B - set G1 char set to US OK
+    ^[)0 - set G1 char set to special / line drawing OK
+    ^[)1 - set G1 char set to alternate ROM OK
+    ^[)2 - set G1 char set to alternate ROM special OK
+    ^[= - "DECKPAM" application keypad mode NYI (keypad not yet implemented)
+    ^[> - "DECKPNM" numeric keypad mode NYI (keypad not yet implemented)
+    ^[7 - "DECSC" save cursor position, char attributes, char set, and origin
+        mode setting for later restore OK
+            The "DECSC" and "DECRC" behavior are based what the VT102 manual
+            says.  The VT220 manual lists more things such as "state of
+            wrap flag" which VTJ-1 doesn't save/restore.
+    ^[8 - "DECRC" restore the values saved by "DECSC" (^[7) OK
+    ^[c - reset OK
+    ^[D - "IND" cursor down one row, possibly scroll OK
+    ^[E - "NEL" cursor down one row, possibly scroll, move to left edge OK
+    ^[H - "HTS" set tab stop at current cursor position OK
+    ^[M - "RI" cursor up one row, possibly scroll OK
+    ^[N - use G2 character set for next character MNI
+    ^[O - use G3 character set for next character MNI
+        ^[N & ^[O wouldn't do much if I implemented them, without some
+        way to select G2 and G3 character sets.  The VT102 manual didn't
+        say much about that.
+    ^[Z - Identify Terminal (DECID) OK
+        synonym of "DA" ^[[c
+
+VT52 mode escape sequences (NYI - not yet implemented)
+    ^[< - "DECANM" return to ANSI mode NYI
+    ^[A - cursor up one line stopping at margin NYI
+    ^[B - cursor down one line stopping at margin NYI
+    ^[C - cursor right one column stopping at margin NYI
+    ^[D - cursor left one column stopping at margin NYI
+    ^[H - cursor to home position NYI
+    ^[Y ... - set cursor position. NYI
+        'Y' is followed by two bytes, line then column; first of
+        each is octal 040 (decimal 32).
+    ^[I - "reverse linefeed" up one line possibly scrolling NYI
+    ^[= - enter application keypad mode NYI
+        keypad will generate escape sequences
+    ^[> - enter numeric keypad mode NYI
+        keypad will generate numeric etc characters
+    ^[F - enter VT52 graphics mode NYI
+        uses a different character set than the VT100 equivalent
+    ^[G - exit VT52 graphics mode NYI
+    ^[K - erase from cursor to end of line NYI
+    ^[J - erase from cursor to end of screen NYI
+    ^[Z - have terminal send an identify sequence NYI
+        response is ^[/Z
+
++-+----------+-+
+| | Keyboard | |
++-+----------+-+
+
+The current design supports a single PS/2 port for plugging in a
+keyboard.  (On the prototype, this is the "PS/2 A" port found on the
+Papilio Arcade MegaWing board.)  At startup time, the keyboard is
+reset.  A message is printed if the keyboard is not found or if it fails
+its self test (the BAT or Basic Assurance Test).
+
+Generally, typing keys on the keyboard results in ASCII codes or escape
+sequences being sent to the host computer.  There are mode flags which
+alter this behavior.
+
+Not all keys are currently supported.  Currently supported:
+    + On the main block of keys, the letters and numbers and the following
+    other keys: tab, caps lock, shift, control, enter, backspace.
+    + Other supported keys:
+        arrow keys
+        "Esc" (escape) key
+Not currently recognized (NYI):
+    + The numeric keypad
+    + The editing keys (insert, etc)
+    + The "alt", "windows", and "menu" keys
+    + Function keys (F1, etc)
+    + Print screen, scroll lock, and pause keys
+    + Additional keys found on multimedia and web keyboards
+
+A few of the unrecognized keys have some limited functions:
+    + The num lock and scroll lock keys will light up the corresponding
+    LEDs on the keyboard, but that's all.
+    + The key combinations alt-menu and control-alt-delete will enter
+    menu mode, even though the keys involved (aside from "control")
+    are otherwise unrecognized.
+
+In the future I hope to support the numeric keypad.  Whether this will
+imitate the behavior of the VT102 or that of PC keyboards is to be determined.
+
+In the future, the 'alt' key will probably result in setting the high
+bit on transmitted characters, or in prefixing them with an escape.  This
+will likely be a settable menu option.
+
+In the future it may be desirable to honor the ^Q and ^S (XON & XOFF)
+control characters for flow control from the host computer.  That's not
+done at the moment (NYI) because a human being at a keyboard isn't
+going to generate data nearly as fast as a computer.
+
++-+------+-+
+| | Menu | |
++-+------+-+
+
+VTJ-1 has a menu mode, which is entered through key combinations.  This
+can be used for changing various terminal settings.
+
+Entering menu mode:
+    + control-alt-delete OK
+    + alt-apps (apps is the key with a picture of a menu) OK
+
+When in menu mode you can recognize it because the words "VTJ-1 Menu"
+are shown in double height single width.
+
+In menu mode only a few keys work:
+    esc - exits menu mode
+    enter - acts on the current selection if any
+    space - ditto
+    right arrow - select the next field
+    down arrow - select the first field of the next line that has any
+
+Settings available in menu mode (with their status codes):
+    + (OK) Set baud rate
+    + (OK) Enable/disable XON/XOFF flow control
+    + (OK) Strip top bit out of 8 bit characters on receipt (which is
+    what VT102 did always)
+    + (OK) Enable/disable local echo (where characters you type
+    are automatically displayed on the screen; normally disabled,
+    and often the host computer does the echo itself)
+    + (OK) Reset the terminal (you can also use the reset button
+    if you have one, like on the Papilio Arcade MegaWing)
+
+On exiting the menu, your screen is cleared and some of your state
+is reset: G0 character set, character set selection, character
+attributes, scroll region, keyboard lock, insert mode flag, and keyboard
+lock mode flag.
+
++-+------------+-+
+| | Deviations | |
++-+------------+-+
+
+This documents some known differences between this and the things it was
+based on (VT102 documentation; VT102 behavior where known; xterm; Mac OS X
+Terminal).
+
+Double-width lines (including double-height double-width lines):
+VTJ-1 treats these lines as if they are 80 columns wide, even though only
+the leftmost 40 columns of those are visible.  xterm and in some cases
+Mac OS X Terminal behave otherwise:
+    + Five tabs (with the default tab stops) put you at column position 39
+    in xterm and Mac OS X; but 40 in VTJ-1.
+    + When cursor is at column 40 or right of it, and you issue a
+    formatting escape, the effect of the formatting or the display of
+    the character following it, shows up in column 39.  (Mac OS X Terminal
+    didn't do that.)
+
+Screen width: VTJ-1's display is 80 columns wide.  It does not have the
+VT102's 132 column mode.
+
+Screen height: VTJ-1's display is 40 rows high, or (depending on font)
+30 or 48 rows high.  It is not 24 rows high like VT102.
+
+The "bold" character attribute (^[[1m) is a little different from xterm and
+Mac OS X Terminal: It brightens the color of foreground pixels.  Where this
+becomes different is when inverse video (^[[7m) is used with it: The pixels
+that are part of the character are still treated as foreground and brightened.
+This is not an unheard-of thing; the Linux console for instance seems to do it.
+I don't know what the VT series machines did.
+
+Full-screen inverse video (^[[?5h) on VTJ-1 is quite different than on
+xterm or Mac OS X Terminal.  It's a little buggy (see "bugs"), but IMO
+those are weirder. (I'm not clear on what they're doing, but I think they
+invert not the current colors but the defaults the program was started with.)
+
+^[[...L & ^[[...M don't move the cursor position; this is consistent with
+the VT102 manual and Mac OS X Terminal but not xterm.
+
+In the lines ^[[...M inserts the character attributes are the currently
+set ones.  This is consistent with xterm and Mac OS X Terminal and with
+other operations that insert lines, but contrary to the VT102 manual.
+
+Key repeat applies to all keys; while on VT102 it didn't apply to return,
+enter, or esc.
+
++-+--------------------------------------------------+-+
+| | Areas for possible improvement (other than bugs) | |
++-+--------------------------------------------------+-+
+
+Not all of these are going to be worth doing ever.  But some might be
+in the future.
+
+A lot of keys (around the edges of the keyboard) not yet implemented.
+Including the numeric keypad, num lock, scroll lock, and alt (mostly).
+
+Some kind of key combination to generate character 127 (delete); I'm accustomed
+to using control-? but VTJ-1 does not yet support it.
+
+VT52 compatibility mode is not yet done.
+
+Compatibility with other non-VT102 terminals.
+
+Include an optional "screen shot generator"; I envision a shift register
+to capture 4 bit color values for a scan line at a time, assembly code
+to perform the operations and encode the data, and a host-side program to
+collect the results and store them in a file.
+
+The serial port implementation is quite limited; various things
+are absent that might be interesting in some circumstances:
+    + Hard-wired flow control as an alternative of XON/XOFF.
+    + Parity support.
+    + Support for 7 bit bytes.
+    + Non-standard baud rates.
+    + Synchronous serial (such as SPI)
+
+Support for the "Single Shift 2" and 3 escape sequences (^[N and ^[O),
+which temporarily shift to the G2 and G3 character sets.  Support
+for selecting G2 and G3 character sets; upper-128 input ytes; additional
+character set selection options; additional character sets.  See ECMA-35.
+
+Support for storage/retrieval of menu selections in persistent memory (SPI
+flash).
+
+Double-buffer the line control data (linctl_a & linctl_b) in
+the assembly language program, for really spotless scrolling.
+
+Do smooth scrolling (one pixel at a time).
+
+Support for other displays like LCDs.
+
+Support for other keyboard connections like USB.
+
+Hardware diagnostics and fault detection.
+
++-+------+-+
+| | Bugs | |
++-+------+-+
+
+This documents significant known bugs.
+
+There's a problem where it reports you don't have a keyboard connected,
+even though you do.  I don't know why this happens, because it's quite
+inconsistent.
+
+The interaction of inverse video with the "brighten foreground" bit is
+inconsistent between full-screen inverse video and per-character inverse
+video.  (Cause: one swaps foreground/background bits, the other
+swaps foreground/backgrounc colors.)
+
+If you press both shift keys, then release one while holding the other
+down, it'll act as if both have been released. (Cause: there's only one
+state bit, which indicates a shift key is down, not which one is down.)
+
+The "flashing" character attribute (^[[5m) is missing.  I liked the "bright"
+character attribute better, and didn't have room for both.
+
+At lower clock rates and higher baud rates there can be problems.  75MHz
+seems ok up to 230,400 baud (the highest I've tried).  50MHz is ok up to
+115,200 baud.  25MHz to 57,600 baud.  This is probably a consequence of
+using inefficient one-byte FIFOs in VTJ-1.

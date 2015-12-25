@@ -1,0 +1,44 @@
+Martian line after start
+Sequence starts at 0^2 + 0^2 after martian
+Martian line after 371^2 + 357^2
+Sequence starts at 371^2 + 361^2 after martian
+Incorrect value for 469^2 + 308^2, 3148, after 469^2 + 307^2
+Out of sequence 490^2 + 7^2 after 490^2 + 485^2
+Incorrect value for 490^2 + 7^2, 477269, after 490^2 + 485^2
+Out of sequence 490^2 + 488^2 after 490^2 + 7^2
+Martian line after 491^2 + 9^2
+Sequence starts at 491^2 + 12^2 after martian
+Martian line after 491^2 + 25^2
+Sequence starts at 491^2 + 29^2 after martian
+Martian line after 737^2 + 31^2
+Sequence starts at 737^2 + 221^2 after martian
+Incorrect value for 916^2 + 606^2, 1220, after 916^2 + 605^2
+Out of sequence 916^2 + 609^2 after 916^2 + 606^2
+Martian line after 985^2 + 294^2
+Sequence starts at 985^2 + 297^2 after martian
+Martian line after 985^2 + 308^2
+Sequence starts at 985^2 + 311^2 after martian
+Martian line after 1054^2 + 780^2
+Sequence starts at 1054^2 + 787^2 after martian
+Incorrect value for 1092^2 + 1069^2, 2, after 1092^2 + 1068^2
+Out of sequence 1092^2 + 1071^2 after 1092^2 + 1069^2
+Out of sequence 1^2 + 870^2 after 1121^2 + 860^2
+Incorrect value for 1^2 + 870^2, 2013541, after 1121^2 + 860^2
+Out of sequence 1121^2 + 871^2 after 1^2 + 870^2
+Martian line after 1147^2 + 770^2
+Sequence starts at 1147^2 + 782^2 after martian
+Martian line after 1165^2 + 313^2
+Sequence starts at 1165^2 + 315^2 after martian
+Incorrect value for 1177^2 + 139^2, 14046406354, after 1177^2 + 138^2
+Out of sequence 1177^2 + 146^2 after 1177^2 + 139^2
+Martian line after 1247^2 + 885^2
+Sequence starts at 1247^2 + 897^2 after martian
+Martian line after 1301^2 + 147^2
+Sequence starts at 1301^2 + 151^2 after martian
+Martian line after 1367^2 + 514^2
+Sequence starts at 1367^2 + 524^2 after martian
+Out of sequence 1367^2 + 538^2 after 1367^2 + 535^2
+Martian line after 1367^2 + 629^2
+Sequence starts at 1367^2 + 635^2 after martian
+Martian line after 1374^2 + 957^2
+Ends after martian

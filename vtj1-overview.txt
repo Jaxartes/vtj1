@@ -1,0 +1,304 @@
+vtj1-overview.txt - Jeremy Dilatush - 2015
+
+This file is an overview of "VTJ-1", a text terminal for inclusion in
+FPGA designs.  VTJ-1 itself is by Jeremy Dilatush.  It also contains
+work by Arlet Ottens.
+
++-+---------------+-+
+| | What is VTJ-1 | |
++-+---------------+-+
+
+As a product, VTJ-1 is a text terminal.  Akin to the VT-100 and
+similar devices of old, it allows some computer, which may not have
+a screen/keyboard of its own, to use the screen/keyboard of the terminal.
+Characters typed on the keyboard, it transmits to the computer over an
+async serial line; characters received from the computer, over the
+serial line, it displays on the screen.  Escape sequences embedded
+in that stream of characters control formatting and appearance of the
+text on screen.
+
+VTJ-1 is written in Verilog and assembly language so that it can be
+included in FPGA designs.  It could provide a way to add screen/keyboard
+funtionality to such a design.  It may be particularly appropriate to
+designs that reconstruct early personal computers, and minicomputers of
+approximately the same time period, as these were often used with
+serial text terminals.
+
+Why did I create VTJ-1?  I wanted to experiment with computer architecture,
+especially older computer architecture, on an FPGA.  Making a new computer
+would require a lot of software to be of any use even as a toy.  Recreating
+an old computer would require a lot of reverse engineering of it. I don't
+have any of the appropriate era, and the ones I was familiar with "back
+in the day" have already been re-created plenty of times.  Creating a
+terminal let me build something new, but usable in an already established
+role.
+
++-+-------------------+-+
+| | What VTJ-1 is not | |
++-+-------------------+-+
+
+It's not a turnkey solution: It'll take some setup and some fiddling
+to get it working with other designs.
+
+It's not the cheapest way just to get a stand-alone terminal: That
+would probably be, to get a Raspberry Pi single-board computer, hook
+up a keyboard and monitor, and use its built in Linux console as
+a terminal.
+
+It's not a faithful reconstruction of any historical terminal.  While
+it takes the VT-100 series escape codes and is meant to be compatible,
+there are significant differences in functionality, and major differences
+in how it works internally.
+
++-+-----------------------+-+
+| | Alternatives to VTJ-1 | |
++-+-----------------------+-+
+
+There are many other ways to get similar functionality:
+    + Nearly any computer you have lying around can be used for the
+    purpose.  Linux and many other operating systems have terminal
+    software built-in.  Terminal programs are widely available for
+    MS Windows too.
+    + You can buy a used terminal.
+    + You can buy a new terminal; there's still a company selling them.
+    + You can use a Raspberry Pi, or other inexpensive computer, as
+    a terminal.
+    + http://www.microvga.com/ sells, or at least sold, a board for
+    use with microcontroller designs
+
++-+-------------+-+
+| | Using VTJ-1 | |
++-+-------------+-+
+
+This is not a full set of instructions, but an overview of what would go
+into integrating VTJ-1.
+
+VTJ-1 is open source under a BSD style license, except for Arlet Ottens's
+CPU design, which is under a similar license.  That means you are free
+to use it as long as: you do not take away the copyright notices and
+statements of who the authors are; and you do not expect a warranty.
+If VTJ-1 is useful to you, I'm very glad.  If it's not, you're on your
+own.  I might help out, but I have my job and my other hobbies and...
+you get the picture.
+
+Things you'd need to get VTJ-1 working:
+    + An FPGA platform for it to run on.  It needs to include the following:
+        - Video output (VGA port)
+        - PS/2 keyboard connector
+        - a serial port (in many boards this will run over USB; in some
+        derived designs this will be internal to the FPGA, connecting
+        VTJ-1 to some host computer)
+        - if you want a "beep" sound, you'll need some kind of audio out
+    I have been using the Papilio Pro board (based on the Xilinx Spartan 6
+    XC6SLX9 chip) with the Papilio Arcade MegaWing.
+    + A VGA display and PS/2 keyboard.
+    + A serial connection to something or other:
+        - like the USB-to-serial capability built into many FPGA boards
+        - or an onchip connection to some other design
+        - or an actual serial connection
+        Note: It's up to you to make
+        sure you get the voltages and line connections right.  A lot of
+        present-day equipment does 3.3 volts; historical computers'
+        RS-232 ports did 12 volts.  Bad things could happen if you connect
+        these wrong.
+
+It also helps to have:
+    + A readiness to fiddle with Verilog and 6502 assembly language.
+    You don't need to be an expert with either (I'm not, and I wrote VJT-1)
+    but it'd be good to be able to "tweak" things if they don't quite fit
+    your needs.
+    + Something which will interact with the user through the terminal.
+    A Linux or Unix host computer will do it.  VTJ-1's display is controlled
+    through a bunch of escape sequences.  For more information about these
+    escape sequences see:
+        - vtj1-design.txt, section "Escape sequences and control characters"
+        - VT102 manual, chapter 5
+          (http://www.vt100.net/docs/vt102-ug/chapter5.html)
+        - ECMA-48 standard
+
+See vtj1-design.txt for a list of the various files that are involved in
+the VTJ-1 project, and for build instructions.
+
+The most likely places you're going to be putting stuff to alter VTJ-1
+and adapt it to your needs are:
+    + In vtj1-config.txt are settings to enable/disable/tune various features.
+    + To use on a different FPGA board the things you may have to change
+    or replace are:
+        - vtj1.ucf: maps the various VTJ-1 outputs to pins on the FPGA;
+        of course, different boards will have different pins
+        - clock75.v & clock75.ucf: Clock settings to generate a 75MHz
+        clock from the Papilio Pro's 32MHz clock.  These are specific
+        to the Spartan 6 chip and will have to be redone for a different
+        chip (or for a different input clock).
+        - vtj1.v:
+            . This is the top level module of VTJ-1 so it's where
+            the external interfacing is done
+            . And it's the part where the memory is.  The memory I've
+            used should be adaptable to other FPGA architectures without
+            change (if they have dual ported RAM), but if it needs change
+            there it is.
+    + If you are integrating VTJ-1 with another design, that'll also involve
+    changing vtj1.v, the toplevel module of VTJ-1.  You might include your
+    design "under" vtj1.v, or vice versa, or come up with a new top level
+    module that brings them together.
+
+To use the VTJ-1 (comparatively) quickly with the packaged bitfile:
+    + Hardware required:
+        Gadget Factory Papilio Pro
+        Gadget Factory Arcade MegaWing
+        Keyboard with PS/2 connector
+        Monitor with VGA connector
+        Computer with USB port
+    + Connect the hardware:
+        Plug the Arcade MegaWing into the Papilio Pro
+        Plug the keyboard into port "PS/2 A" on the Arcade MegaWing
+        Plug the monitor into port "VGA" on the Arcade MegaWing
+        Connect the USB port on the Papilio Pro to the computer
+    + Load the firmware:
+        Commands for this will vary based on your computer platform
+        and configuration.
+        I use: sudo ~/papilio/papilio-prog -vf vtj1.bit
+    + Connect to it and play with it:
+        Using programs like 'minicom', 'screen', etc.
+        The default baud rate is 115,200.
+        You may change it using the onscreen menu, entered via
+        one of the two following key combinations:
+            alt-apps ("apps" looks like a menu bar)
+            ctrl-alt-delete
+    + If you want to use VTJ-1 as a login terminal, there are some
+    limitations.  The FTDI driver on some systems doesn't support
+    all the calls needed in a login terminal.  One hackaround is,
+    once you're logged in, to run a program like 'script' that sets up
+    a pseudo terminal.
+    + Suggested terminal type to use on Linux: "vt102"
+    (if your system has a "vt102-color" that would be even better)
+    + The "reset" button on the Arcade MegaWing serves as a reset button
+    for VTJ-1.  When you press the button the software restarts itself.
+    A reset option is also available in VTJ-1's onscreen menu.
+
+Regarding fonts:  I've tried VTJ-1 with four different fonts.  The
+one I like best is based on an 8x12 Linux console font.  But I've chosen
+not to distribute VTJ-1 with that font, due to licensing concerns.
+Instructions in vtj1-design.txt will let you re-generate that font if
+you want to use it.
+
+Resource utilization:  Varies with settings.  In my current test setup
+it uses 382 Spartan-6 slices (657 registers and 994 LUTs) and 19kB of
+block RAM.  That's about as low as it goes with current options.  But
+it'd be possible, by some code modifications I haven't tried yet, to
+lower the block RAM usage a little further depending on your font choice:
+    + Text memory is 8kB, which could be lowered:
+        - to 6kB if you use an 8x16 font (not 8x10 or 8x12)
+
++-+------------------------+-+
+| | Functionality of VTJ-1 | |
++-+------------------------+-+
+
+Display features:
+    + VTJ-1 displays on an 80x40 text grid on a VGA monitor, at 640x480
+    pixel resolution
+        - with different fonts it could display 80x30 or 80x48
+    + Eight colors for foreground and background
+    + Double-width, and double-width-double-height text lines
+    + Inverse video, bold face (made by brightening foreground colors),
+    and underline
+
+Keyboard features:
+    + The "main block" of keys
+    + Must be in PS/2 port A; port B is ignored
+
+Control features:
+    + Escape sequences, derived from the following sources:
+        - VT102 user guide: my main source of information
+        - the behavior of terminal emulators, especially "xterm"
+        - ECMA-48, the ANSI escape sequence standard, occasionally looked at
+    Users don't issue the escape sequences directly, instead various programs,
+    most notably the 'ncurses' library, do it for them.
+
+Communication features:
+    + asynchronous serial port (like RS-232)
+        - could be adapted to use other communication methods
+
+Notable missing features:
+    + 132-column mode
+    + bitmap graphics
+    + "flashing" text; it just didn't fit and I don't like it anyway
+    + there's a very limited selection of communication settings
+    + non-VGA displays (HDMI)
+    + non-PS/2 keyboards (USB)
+    + printer support
+    + some other things missing for now:
+        - numeric keypad (and some of the other keys around the edges
+        of the PC keyboard)
+        - VT52 mode
+        - RX side of XON/XOFF flow control (TX side is done)
+
++-+-----------------------+-+
+| | Architecture of VTJ-1 | |
++-+-----------------------+-+
+
+VTJ-1 consists of a simple "system on a chip" built on the 6502, an
+8-bit processor.  The 6502 is clocked at a multiple of 25MHz (75MHz
+in my testing), which is the pixel clock of the VTJ-1 output signal.
+(Clocking at only 25MHz, requires a one line change in vtj1_video.v.)
+
+I don't know if any of the historical terminals used a 6502; the VT-100
+itself used an 8080.  But since that's an 8 bit processor, too, they
+can be considered at least marginally comparable.
+
+The fact that the FPGA allows the CPU to be clocked much faster than 8
+bit processors of the 8 bit era (75MHz on the FPGA I've been using) means
+that VTJ-1 can rely on the CPU much more than historical 8 bit systems
+generally did.  And that's just how I did it:
+    + The video interface only handles horizontal timings and the associated
+    processing.  Vertical timings and addressing are handled by the CPU.
+    The CPU is interrupted for every scan line (31,500 times a second!) to
+    compute the next scan line's data.  If the CPU blocks interrupts for
+    a few tens of microseconds, video output will stop until the system
+    is reset.
+    + The keyboard (synchronous serial) and communications (asynchronous
+    serial) interfaces have very short buffers, holding about one byte
+    in each direction.  If the CPU blocks interrupts long enough for two
+    bytes to come in, it will lose one of them.
+
+The above decisions are "bad" from the usual standpoint of computer
+design -- they demand a lot of the CPU, thus reducing performance.
+But when your CPU is substantially faster than is needed for your
+application, you can affort to do that.  And it keeps the I/O device
+designs simple, which provides two benefits:
+    + Less development and testing effort
+    + Less FPGA area utilized
+
+The less FPGA area the design uses, of course, the more room there is
+for something *else* on the same FPGA.
+
++-+---------+-+
+| | License | |
++-+---------+-+
+
+The components of VTJ-1 are copyrighted by their respective authors.
+They have been released under an open source license by those authors,
+so you are free to use VTJ-1 for your own purposes subject to a few simple
+restrictions.  See the file "COPYING", included with the distribution,
+for the details of those restrictions.
+
+Brief summary of them:
+    6502 CPU:
+        (C) Arlet Ottens, <arlet@c-scape.nl>
+        simplified BSD-like license
+    Font "cafe-12":
+        From "fntcol16" compilation,
+        (c) Copyright 1991,1992 Joseph (Yossi) Gil.
+        The font is attributed to: TBH-Softworx (Oliver Fromme)
+    Font "freebsd-boot-font-vt":
+        Copyright (c) 1999 The NetBSD Foundation, Inc.
+        Derived from software contributed by Andrew Doran.
+        Copyright (c) 2000 Andrew Miklic
+        BSD license
+    Font "sony-8x16":
+        Copyright 1989 by Sony Corp.
+        Copyright (c) 1987, 1988 Sony Corp.
+        BSD-like license
+    The rest of VTJ-1:
+        Copyright (c) 2015 Jeremy Dilatush
+        BSD license

@@ -1,0 +1,117 @@
+The components of VTJ-1 are copyrighted by their respective authors.
+They have been released under an open source license by those authors,
+so you are free to use VTJ-1 for your own purposes subject to a few simple
+restrictions.
+
+This file, "COPYING", lists those restrictions on a component by component
+basis.
+
+6502 CPU (cpu.v, ALU.v):
+/*
+ * verilog model of 6502 CPU.
+ *
+ * (C) Arlet Ottens, <arlet@c-scape.nl>
+ *
+ * Feel free to use this code in any project (commercial or not), as long as you
+ * keep this message, and the copyright notice. This code is provided "as is", 
+ * without any warranties of any kind. 
+ * 
+ */
+
+Font "cafe-12" (fonts/cafe.f12, fonts/font-cafe-12-vt-128.mem, fonts/font-cafe-12-vt-256.mem):
+    Extracted from the "fntcol16" compilation:
+        This *compilation* is (c) Copyright 1991,1992 Joseph (Yossi) Gil.
+        Permission is granted to use and redistribute the files comprising
+        this collection in any way (including conversion to another format),
+        provided that my name and addresses and this notice is preserved.
+    Which attributes it to:
+        TBH-Softworx (Oliver Fromme)
+
+Font "freebsd-boot-font-vt" (fonts/boot_font.c, fonts/freebsd-boot-font-vt-128.mem, fonts/freebsd-boot-font-vt-256.mem):
+/*-
+ * Copyright (c) 1999 The NetBSD Foundation, Inc.
+ * All rights reserved.
+ *
+ * This code is derived from software contributed to The NetBSD Foundation
+ * by Andrew Doran.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE NETBSD FOUNDATION, INC. AND CONTRIBUTORS
+ * ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+ * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL JEREMY DILATUSH OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ */
+/*-
+ * This font lives in the public domain. It is a PC font, IBM encoding
+ * (CP437), which was designed for use with syscons.
+ *
+ * Copyright (c) 2000 Andrew Miklic
+ */
+
+Font "sony-8x16-vt" (fonts/sony-8x16.bdf, fonts/sony-8x16-vt-128.mem):
+    Copyright 1989 by Sony Corp.
+
+    Permission to use, copy, modify, and distribute this software and
+    its documentation for any purpose and without fee is hereby granted,
+    provided that the above copyright notices appear in all copies and
+    that both those copyright notices and this permission notice appear
+    in supporting documentation, and that the name of Sony Corp.
+    not be used in advertising or publicity pertaining to distribution
+    of the software without specific, written prior permission.  Sony
+    Corp. makes no representations about the suitability of this
+    software for any purpose.  It is provided "as is" without express or
+    implied warranty.
+
+    SONY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+    SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+    FITNESS, IN NO EVENT SHALL SONY BE LIABLE FOR ANY
+    SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+    RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+    CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+    CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+The "lat1-12-vt" font has been removed from VTJ-1 because it may be
+under the GPL (GNU General Public License).  You may still use it
+with VTJ-1 by installing the source font running the mapping script
+(vtj1fonter.tcl) yourself.  If you do so, it is up to you to comply
+with the license terms.
+
+The rest of VTJ-1 (vtj1.asm, vtj1*.v, others):
+; Copyright (c) 2015 Jeremy Dilatush
+; All rights reserved.
+; 
+; Redistribution and use in source and binary forms, with or without
+; modification, are permitted provided that the following conditions
+; are met:
+; 1. Redistributions of source code must retain the above copyright
+;    notice, this list of conditions and the following disclaimer.
+; 2. Redistributions in binary form must reproduce the above copyright
+;    notice, this list of conditions and the following disclaimer in the
+;    documentation and/or other materials provided with the distribution.
+; 
+; THIS SOFTWARE IS PROVIDED BY JEREMY DILATUSH AND CONTRIBUTORS
+; ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+; TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+; PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL JEREMY DILATUSH OR CONTRIBUTORS
+; BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+; CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+; SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+; INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+; CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+; ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+; POSSIBILITY OF SUCH DAMAGE.

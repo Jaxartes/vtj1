@@ -1,0 +1,133 @@
+### Instructions:
+# This file, vtj1-config.txt, is the main build-time configuration file
+# for the VTJ-1 terminal.  You can edit these settings to alter its
+# behavior.  See also vtj1-overview.txt and vtj1-design.txt.
+# 
+# This file's contents are mostly not used directly, instead they're
+# translated by 'vtj1-config-gen.tcl' into three files, vtj1-config.asm
+# and vtj1-config.v and vtj1-config.cooked, used by the software and
+# "hardware" (RTL) parts of VTJ-1, and its supporting scripts, respectively.
+#
+# Syntactically, this file consists of name=value pairs, comments, and
+# blank lines.  Anything beginning with '#' is a comment.  Unrecognized
+# names will be ignored.  There is no way to spread a value onto multiple
+# lines.  Most of the values are simple booleans (0 for no, 1 for yes)
+# or numbers anyway.
+
+### Settings, with explanations for each:
+font=freebsd-boot-font-vt
+    # font= Name of the font to use, as recognized by vtj1fonter.tcl,
+    # which see.  Generally the '-vt' variants of the fonts are the ones
+    # that should be used.  Some fonts may depend on external software and
+    # may be subject to the copyrights and license terms of that
+    # external software.
+    # 
+    # Suggested values: lat1-12-vt; cafe-12-vt;
+    # sony-8x16-vt; freebsd-boot-font-vt.
+    # 
+    # I personally like "lat1-12-vt" the best, but you have to have the
+    # font installed on your build machine at
+    # "/usr/share/consolefonts/lat1-12.psf.gz" to use it.
+fpga_platform=papilio_pro_arcade
+    # fpga_platform= The FPGA platform that VTJ-1 is running on.  At the
+    # time of writing, the only supported value is 'papilio_pro_arcade'
+    # which refers to the Gadget Factory's "Papilio One" board paired
+    # with their "Arcade MegaWing".  But in the future other platforms
+    # may be supported.
+baudrate=115200 # The default baud rate for VTJ-1 to use, which may be
+                # changed at runtime in the menu (if enabled).  This may
+                # only take a limited set of values, but that set includes
+                # most of the standard baud rates.
+clock_rate=77 # Clock rate in MHz.  The following values are currently
+              # accepted:
+              #     25 - 25MHz; close to 1x the VGA pixel rate
+              #     50 - 50MHz; close to 2x the VGA pixel rate
+              #     51 - 51.2MHz; close to 2x the VGA pixel rate and
+              #          slightly higher than 50, and may work better
+              #          for some displays
+              #     75 - 74.7MHz; close to 3x the VGA pixel rate
+              #     77 - 76.8MHz; close to 3x the VGA pixel rate and
+              #          slightly higher than 75, and may work better
+              #          for some displays
+              # Higher clock rates are preferable; lower ones can have
+              # trouble with higher baud rates.
+writeable_rom=1 # The VTJ-1's software resides in memory which I'll call "ROM"
+                # because there's usually no need to write to it.  But
+                # when developing VTJ-1's software, it's convenient to be
+                # able to write to it.
+                # A '0' makes it read-only.
+                # A '1' makes it writeable.
+                # If you're going to use reload.tcl, you need a '1' here
+big_rom=0 # The VTJ-1's software currently fits into 8kB of memory.
+          # But if you're expanding it somehow you might need more.
+          # A '0' makes it 8kB
+          # A '1' makes it 16kB
+writeable_font=1 # The VTJ-1's font memory doesn't normally need to be
+                 # writable either.  But it can be.
+                 # A '0' makes it read-only
+                 # A '1' makes it writeable
+big_ram=0 # The VTJ-1's software only needs to use 1kB for data memory
+          # (not counting video memory) but it's possible to get more
+          # if desired.
+          # A '0' makes it 1kB
+          # A '1' makes it 2kB
+font_256_chars=0 # VTJ-1 currently only uses 128 characters of the font,
+                 # but is capable of taking 256 character fonts.  This
+                 # changes the format of the font as well as the size
+                 # of the memory used to hold it.  After changing this
+                 # you'll have to put a new font.mem file in place.
+                 # vtj1fonter.tcl can generate one.  It can be run
+                 # via 'make font.mem'.
+                 # A '0' makes it 128 characters in 2kB memory
+                 # A '1' makes it 256 characters in 4kB memory
+visible_bell=1 # When a BEL character is received, VTJ-1 can display it
+               # visually by flashing the screen.
+               # A '0' disables this
+               # A '1' enables it
+audible_bell=1 # When a BEL character is received, VTJ-1 can indicate it
+               # by a beep tone, if the physical hardware permits.
+               # A '0' disables this
+               # A '1' enables it
+devel_escapes=1 # Enables some VTJ-1 specific "developer" escape codes
+                # (of the form "\033[...|").  In normal use they just
+                # take up space and may even be considered insecure.
+                # While developing VTJ-1 software they can be useful.
+                # A '0' disables them
+                # A '1' enables them
+                # If you're going to use reload.tcl, you need a '1' here
+devel_escapes_2=1 # Enables some further VTJ-1 specifc "developer" escape
+                  # codes, beyond the ones covered by 'devel_escapes'.
+                  # If 'devel_escapes' is not also enabled, this will have
+                  # no effect.
+                  # A '0' disables them
+                  # A '1' enables them
+                  # They're not usually useful
+progdelay=1 # Enables a further VTJ-1 "developer" escape code to
+            # set a programmable delay to slow down VTJ-1 for testing.
+            # If 'devel_escapes' is not also enabled, this won't
+            # do much good.
+            # A '0' disables it
+            # A '1' enables it
+bufhwm=1 # Enables code to track the "high water mark" of the
+         # input buffer, for debugging it.
+         # A '0' disables it
+         # A '1' enables it
+video_timing_tester=0 # VTJ-1 has a "video timing tester" device which
+                      # helps in debugging the video device.  It's not
+                      # used normally.
+                      # A '0' leaves it out.
+                      # A '1' includes it.
+menu=1 # Enables a handy on-screen menu on the VTJ-1.
+       # A '0' disable it
+       # A '1' enables it
+menu_lowbauds=1 # Include low (<9600) baud rates in the VTJ-1's on screen
+                # menu.  While these are annoyingly slow in the present
+                # day, they were used historically and there may be
+                # occasions when they're desired.
+                # A '0' disables it
+                # A '1' enables it
+pgalign=1 # Enables alignment of some lookup tables to 256 byte boundaries
+          # in VTJ-1's memory.  This might increase performance at the
+          # expense of a few bytes of memory.
+          # A '0' disables it
+          # A '1' enables it
