@@ -55,8 +55,8 @@ With brief descriptions; organized by conceptual component.
         misc.v - Various small cores.
         vtj1.v - Top level, brings the whole project together.
             vtj1.ucf - pin assignments for Papilio Pro + Arcade MegaWing boards
-        vtj1_clock.v - Generates clock signal.  On Papilio Pro, can generate
-            clocks at about 25, 50, or 75MHz from the board's 32MHz clock input.
+            vtj1peplx9.ucf - pin assignments for Pepino LX9 board
+        vtj1_clock.v - Generates clock signal.
         vtj1_gpio.v - Buttons and lights.
         vtj1_ps2.v - Keyboard (or mouse) interface.
         vtj1_sysc.v - Interrupt (IRQ) manager.
@@ -717,10 +717,10 @@ VT52 mode escape sequences (NYI - not yet implemented)
 +-+----------+-+
 
 The current design supports a single PS/2 port for plugging in a
-keyboard.  (On the prototype, this is the "PS/2 A" port found on the
-Papilio Arcade MegaWing board.)  At startup time, the keyboard is
-reset.  A message is printed if the keyboard is not found or if it fails
-its self test (the BAT or Basic Assurance Test).
+keyboard.  (This is the "PS/2 A" port found on the Papilio Arcade
+MegaWing board; on Pepino it's the "KBD" port.)  At startup time,
+the keyboard is reset.  A message is printed if the keyboard is not found
+or if it fails its self test (the BAT or Basic Assurance Test).
 
 Generally, typing keys on the keyboard results in ASCII codes or escape
 sequences being sent to the host computer.  There are mode flags which

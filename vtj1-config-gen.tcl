@@ -107,12 +107,17 @@ foreach {n v} [array get cfg] {
         puts stderr "Unknown name '$n' in ${input_filename}."
         error "Bad input"
     } elseif {$n eq "fpga_platform"} {
-        if {$v ne $defaults($n)} {
-            puts stderr "Unsupported value for fpga_platform= ($v)"
-            puts stderr "Currently the only supported value is $defaults($n)."
-            puts stderr "To support another platform will require code"
-            puts stderr "changes and plenty of testing."
-            error "Bad input"
+        switch -- $v {
+            "papilio_pro_arcade" {
+            }
+            "pepino_lx9" {
+            }
+            default {
+                puts stderr "Unsupported value for fpga_platform= ($v)"
+                puts stderr "To support another platform will require code"
+                puts stderr "changes and plenty of testing."
+                error "Bad input"
+            }
         }
     } elseif {$n eq "font"} {
         if {![string match "*-vt" $cfg($n)]} {
@@ -176,13 +181,32 @@ if {[info exists baudcodes($cfg(baudrate))]} {
 
 # and clock rate
 # known_clock_rates:
-#       for each clock rate: label, MHz, multiple of 25, list of `defines
-set known_clock_rates {
-    25 25.0   1 {VTJ1_CLOCK_25MHZ VTJ1_VIDEO_25MHZ}
-    50 50.0   2 VTJ1_CLOCK_50MHZ
-    51 51.2   2 VTJ1_CLOCK_51200KHZ
-    75 74.667 3 VTJ1_CLOCK_74667KHZ
-    77 76.8   3 VTJ1_CLOCK_76800KHZ
+#       for each clock rate:
+#           label
+#           MHz
+#           multiple of 25
+#           list of `defines
+switch -- $cfg(fpga_platform) {
+    papilio_pro_arcade {
+        # Papilio: base clock rate 32MHz
+        set input_clock INPUT_CLOCK_32MHZ
+        set known_clock_rates {
+            25 25.0   1 {VTJ1_CLOCK_25MHZ VTJ1_VIDEO_25MHZ}
+            50 50.0   2 VTJ1_CLOCK_50MHZ
+            51 51.2   2 VTJ1_CLOCK_51200KHZ
+            75 74.667 3 VTJ1_CLOCK_74667KHZ
+            77 76.8   3 VTJ1_CLOCK_76800KHZ
+        }
+    }
+    pepino_lx9 {
+        # Pepino: base clock rate 50MHz
+        set input_clock INPUT_CLOCK_50MHZ
+        set known_clock_rates {
+            25 25.0   1 {VTJ1_CLOCK_25MHZ VTJ1_VIDEO_25MHZ}
+            50 50.0   2 VTJ1_CLOCK_50MHZ
+            75 75.0   3 VTJ1_CLOCK_75MHZ
+        }
+    }
 }
 set clock_rate_ok 0
 set clock_rate_avail [list]
@@ -251,8 +275,8 @@ foreach {on in} {
 }
 
 # handle clock rate and things which depend on it
-puts $vfp "`define XILINX_SPARTAN_6 // assumed FPGA hardware type"
-puts $vfp "`define INPUT_CLOCK_32MHZ // assumed clock, as on Papilio board"
+puts $vfp "`define XILINX_SPARTAN_6 // selected FPGA hardware type"
+puts $vfp "`define ${input_clock} // selected clock"
 foreach {crlbl crmhz crper crdef} $known_clock_rates {
     if {$cfg(clock_rate) eq $crlbl} {
         set mhz $crmhz ; # clock rate in MHz, to use in calculations
@@ -288,6 +312,19 @@ puts $vfp \
 if {$per == 1} {
     puts $vfp \
         [format {`define PIXEL_ENABLE_RATE_1 // clock rate is 25MHz}]
+}
+
+# color depth depends on platform
+switch -- $cfg(fpga_platform) {
+    papilio_pro_arcade {
+        # Papilio: depends on the I/O board; the Arcade MegaWing has
+        # 4 bits each for red, green, and blue.
+        puts $vfp "`define VTJ1_COLOR_444"
+    }
+    pepino_lx9 {
+        # Pepino: has 3 bits each for red and green, and 2 for blue.
+        puts $vfp "`define VTJ1_COLOR_332"
+    }
 }
 
 # some convenience arguments for use at build time

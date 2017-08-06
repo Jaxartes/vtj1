@@ -87,6 +87,32 @@ module vtj1_clock(
         .CLKOUT0_DIVIDE(10) // and give output 0, 768MHz / 10 = 76.8MHz
 `endif // VTJ1_CLOCK_76800KHZ
 `endif // INPUT_CLOCK_32MHz
+`ifdef INPUT_CLOCK_50MHZ
+        // Utilize a 50MHz input clock as found on the Pepino board
+        .CLKIN_PERIOD(20.000), // 20 ns means 50MHz, input clock frequency
+`ifdef VTJ1_CLOCK_25MHZ
+        .DIVCLK_DIVIDE(1), // feed 32MHz to the PLL input
+        .CLKFBOUT_MULT(10), // run the VCO at 50*10=500MHz (ideal seems to
+                            // be a little over 400MHz)
+        .CLKOUT0_DIVIDE(20) // and give output 0, 500MHZ / 20 = 25MHz
+`endif // VTJ1_CLOCK_25MHZ
+        // INPUT_CLOCK_50MHZ & VTJ1_CLOCK_50MHZ could just skip the
+        // PLL, saving resources; or can use this, which may have
+        // hidden advantages of its own.
+`ifdef VTJ1_CLOCK_50MHZ
+        .DIVCLK_DIVIDE(1), // feed 32MHz to the PLL input
+        .CLKFBOUT_MULT(10), // run the VCO at 50*10=500MHz (ideal seems to
+                            // be a little over 400MHz)
+        .CLKOUT0_DIVIDE(10) // and give output 0, 500MHZ / 10 = 50MHz
+`endif // VTJ1_CLOCK_50MHZ
+`ifdef VTJ1_CLOCK_75MHZ
+        // 75 MHz clock: approx 3x the pixel rate
+        .DIVCLK_DIVIDE(1), // feed that 32MHz to the PLL input
+        .CLKFBOUT_MULT(9), // run the VCO at 50*9=450MHz (ideal seems to
+                            // be a little over 400MHz)
+        .CLKOUT0_DIVIDE(6) // and give output 0, 450MHZ / 6 = 75MHz
+`endif // VTJ1_CLOCK_74667KHZ
+`endif // INPUT_CLOCK_50MHz
     ) mainpll (
         .CLKIN(iclk), // input clock
         .CLKOUT0(oclkb), // output clock

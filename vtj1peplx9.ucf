@@ -1,0 +1,47 @@
+NET "*" IOSTANDARD=LVCMOS33;
+CONFIG VCCAUX = "3.3" ;
+
+#50 MHz oscillator
+NET "board_clk"       LOC = "J16";
+NET "board_clk"       TNM_NET = "osc";
+TIMESPEC "TS_osc" = PERIOD "osc" 20.000ns;
+
+#tactile switch; here used for reset
+NET i_reset       LOC = "K14" | PULLDOWN;
+
+#serial interface
+NET "tx_ftdi"          LOC = "B16"; # transmit data (output to FTDI chip)
+NET "rx_ftdi"          LOC = "B15"; # receive data (input from FTDI chip)
+#NET "RTS"          LOC = "C15"; # Request to send (active low output)
+#NET "CTS"          LOC = "C16"; # Clear to send (active low input)
+
+#green LEDs
+NET "leds[0]"      LOC = "N16"; # bottom LED
+NET "leds[1]"      LOC = "N14";
+NET "leds[2]"      LOC = "M14";
+NET "leds[3]"      LOC = "M13";
+# four more of them not used by this project at this time:
+#NET "LEDS[4]"      LOC = "L12";
+#NET "LEDS[5]"      LOC = "L13";
+#NET "LEDS[6]"      LOC = "L14";
+#NET "LEDS[7]"      LOC = "L16"; # top LED
+
+# VGA port
+NET "o_hsync"    LOC = D11;
+NET "o_vsync"    LOC = E11;
+NET "o_video_r<1>"   LOC = B10;
+NET "o_video_r<2>"   LOC = A10;
+NET "o_video_r<3>"   LOC = C11;
+NET "o_video_g<1>" LOC = A11;
+NET "o_video_g<2>" LOC = B12;
+NET "o_video_g<3>" LOC = A12;
+NET "o_video_b<2>"  LOC = C13;
+NET "o_video_b<3>"  LOC = A13;
+
+# PS/2 keyboard
+NET "ps2a_clk"      LOC = "C9" | PULLUP;
+NET "ps2a_dat"      LOC = "A9" | PULLUP;
+
+# audio
+NET "o_audio_l"      LOC = "K15";
+NET "o_audio_r"      LOC = "K16";

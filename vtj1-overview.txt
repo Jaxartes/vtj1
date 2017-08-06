@@ -89,8 +89,9 @@ Things you'd need to get VTJ-1 working:
         derived designs this will be internal to the FPGA, connecting
         VTJ-1 to some host computer)
         - if you want a "beep" sound, you'll need some kind of audio out
-    I have been using the Papilio Pro board (based on the Xilinx Spartan 6
-    XC6SLX9 chip) with the Papilio Arcade MegaWing.
+    I developed using the Papilio Pro board (based on the Xilinx Spartan 6
+    XC6SLX9 chip) with the Papilio Arcade MegaWing, then ported to the
+    Pepino LX9 board (based on the same chip) later.
     + A VGA display and PS/2 keyboard.
     + A serial connection to something or other:
         - like the USB-to-serial capability built into many FPGA boards
@@ -126,10 +127,12 @@ and adapt it to your needs are:
     or replace are:
         - vtj1.ucf: maps the various VTJ-1 outputs to pins on the FPGA;
         of course, different boards will have different pins
-        - clock75.v & clock75.ucf: Clock settings to generate a 75MHz
-        clock from the Papilio Pro's 32MHz clock.  These are specific
-        to the Spartan 6 chip and will have to be redone for a different
-        chip (or for a different input clock).
+            vtj1peplx9.ucf is the one for Pepino LX9
+        - vtj1_clock.v: Generates a clock of the appropriate rate
+        (a multiple of 25MHz) from the board's own clock (32MHz on
+        the Papilio Pro).  These are specific to the Spartan 6 chip
+        and the particular clock inpu rate and will have to be redone
+        for a different chip (or for a different input clock).
         - vtj1.v:
             . This is the top level module of VTJ-1 so it's where
             the external interfacing is done
@@ -146,6 +149,7 @@ To use the VTJ-1 (comparatively) quickly with the packaged bitfile:
     + Hardware required:
         Gadget Factory Papilio Pro
         Gadget Factory Arcade MegaWing
+        or, Saanlima Pepino LX9 in place of both of the above
         Keyboard with PS/2 connector
         Monitor with VGA connector
         Computer with USB port

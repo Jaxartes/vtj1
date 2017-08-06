@@ -29,17 +29,19 @@ font=freebsd-boot-font-vt
     # font installed on your build machine at
     # "/usr/share/consolefonts/lat1-12.psf.gz" to use it.
 fpga_platform=papilio_pro_arcade
-    # fpga_platform= The FPGA platform that VTJ-1 is running on.  At the
-    # time of writing, the only supported value is 'papilio_pro_arcade'
-    # which refers to the Gadget Factory's "Papilio One" board paired
-    # with their "Arcade MegaWing".  But in the future other platforms
-    # may be supported.
+    # fpga_platform= The FPGA platform that VTJ-1 is running on.  Possibilities:
+    #       papilio_pro_arcade -
+    #           Gadget Factory's "Papilio Pro" board paired with their
+    #           "Arcade MegaWing."
+    #       pepino_lx9 -
+    #           Saanlima's "Pepino" board, LX9 version.
+    # In the future other platforms may be supported.
 baudrate=115200 # The default baud rate for VTJ-1 to use, which may be
                 # changed at runtime in the menu (if enabled).  This may
                 # only take a limited set of values, but that set includes
                 # most of the standard baud rates.
 clock_rate=77 # Clock rate in MHz.  The following values are currently
-              # accepted:
+              # accepted on Papilio:
               #     25 - 25MHz; close to 1x the VGA pixel rate
               #     50 - 50MHz; close to 2x the VGA pixel rate
               #     51 - 51.2MHz; close to 2x the VGA pixel rate and
@@ -49,6 +51,10 @@ clock_rate=77 # Clock rate in MHz.  The following values are currently
               #     77 - 76.8MHz; close to 3x the VGA pixel rate and
               #          slightly higher than 75, and may work better
               #          for some displays
+              # and on Pepino:
+              #     25 - 25MHz; close to 1x the VGA pixel rate
+              #     50 - 50MHz; close to 2x the VGA pixel rate
+              #     75 - 75MHz; close to 3x the VGA pixel rate
               # Higher clock rates are preferable; lower ones can have
               # trouble with higher baud rates.
 writeable_rom=1 # The VTJ-1's software resides in memory which I'll call "ROM"

@@ -43,10 +43,18 @@ module vtj1(
     // video output
     output o_vsync,
     output o_hsync,
+`ifdef VTJ1_COLOR_444
     output [3:0]o_video_r,
     output [3:0]o_video_g,
     output [3:0]o_video_b,
-    // serial port through the FTDI chip
+`endif
+`ifdef VTJ1_COLOR_332
+    output [3:1]o_video_r,
+    output [3:1]o_video_g,
+    output [3:2]o_video_b,
+`endif
+    // serial port through the FTDI chip (or not - you can point it somewhere
+    // else)
     input rx_ftdi,
     output tx_ftdi,
     // PS/2 port A
@@ -267,9 +275,15 @@ module vtj1(
         .text_adr(text_vadr), .font_adr(font_vadr),
         .text_red(text_vred), .font_red(font_vred), .pe(pixel_enable)
     );
+`ifdef VTJ1_COLOR_444
     assign o_video_r[1:0] = o_video_r[3:2];
     assign o_video_g[1:0] = o_video_g[3:2];
     assign o_video_b[1:0] = o_video_b[3:2];
+`endif
+`ifdef VTJ1_COLOR_332
+    assign o_video_r[1] = o_video_r[3];
+    assign o_video_g[1] = o_video_g[3];
+`endif
 
     // I/O slot 2 - buttons and lights
     wire write_rom, beep;
