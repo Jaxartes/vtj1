@@ -48,8 +48,7 @@ module vtj1_ps2(
 );
     // 1-byte FIFO for transmitting bytes (TX)
     reg [7:0]txf_data = 8'd0; // the byte data
-    reg [1:0]txf_sema = 2'd0; // these bits are != if there's a byte in there
-    // YYY consider getting rid of this shift register, not needed
+    reg txf_strobe = 1'd0; // will pulse when we are to TX a byte
 
     // 1-byte FIFO for receiving bytes (RX)
     reg [7:0]rxf_data = 8'd0; // the data
@@ -66,20 +65,21 @@ module vtj1_ps2(
     always @(posedge clk)
         if (rst) begin
             txf_data <= 8'd0;
-            txf_sema[0] <= 1'b0;
+            txf_strobe <= 1'd0;
             rxf_sema[1] <= 1'b0;
             exc_rxoflow[0] <= 1'b0;
             exc_rxparity[0] <= 1'b0;
             exc_txbadack[0] <= 1'b0;
         end else begin
             red <= 8'd0;
+            txf_strobe <= 1'd0;
             case(adr[2:0])
             3'd1: begin // transmit a byte
                 // Put it on the 1-byte FIFO; it's up to the software
                 // to check that it's empty first, or bytes will be lost.
                 if (wen) begin
                     txf_data <= wrt;
-                    txf_sema[0] <= ~txf_sema[1];
+                    txf_strobe <= 1'd1;
                 end
             end
             3'd2: begin // receive a byte
@@ -109,19 +109,25 @@ module vtj1_ps2(
             if (wen) red <= wrt;
         end
 
-    assign irqa = (rxf_sema[0] != rxf_sema[1]); // is FIFO full
-    assign irqb = (txf_sema[0] == txf_sema[1]); // is FIFO empty
-
     // Now oversample the data & clock lines & take the average of 5 samples.
-    // And take 2 more samples for synchronization.
-    reg [6:0] datosa = 7'd0, clkosa = 7'd0;
+    // And take 3 more samples for synchronization.
+    reg [2:0] datsyn = 3'd0, clksyn = 3'd0;
+    reg [6:2] datosa = 5'd0, clkosa = 5'd0;
     always @(posedge clk)
         if (rst) begin
-            datosa <= 7'd0;
-            clkosa <= 7'd0;
+            datsyn <= 3'd7;
+            clksyn <= 3'd7;
+        end else begin
+            datsyn <= { datsyn[1:0], ps2dat };
+            clksyn <= { clksyn[1:0], ps2clk };
+        end
+    always @(posedge clk)
+        if (rst) begin
+            datosa <= 5'd31;
+            clkosa <= 5'd31;
         end else if (sixus) begin
-            datosa <= { datosa[5:0], ps2dat };
-            clkosa <= { clkosa[5:0], ps2clk };
+            datosa <= { datosa[5:2], datsyn[2] };
+            clkosa <= { clkosa[5:2], clksyn[2] };
         end
     wire datin, clkin;
     avg5 datavg(datin, datosa[6:2]);
@@ -156,7 +162,10 @@ module vtj1_ps2(
             exc_rxoflow[1]  <= 1'b0; // clear exception
             rxf_sema[0] <= 1'b0; // empty FIFO
         end else if (sixus) begin
-            if (xtrig[2] && !suppress_rx) begin
+            if (suppress_rx)
+                // if we're doing TX, clobber any partial byte we've RX'ed
+                rxsr <= 10'd1023;
+            else if (xtrig[2]) begin
                 if (rxsr[0])
                     // not a byte yet; just shift the bit into the register
                     rxsr <= { datin, rxsr[9:1] };
@@ -167,7 +176,7 @@ module vtj1_ps2(
                     //      rxsr[9] holds the parity bit (odd parity)
                     //      datin holds the stop bit (1)
                     // clear the shift register
-                    rxsr <= { datin, 9'd511 };
+                    rxsr <= 10'd1023;
                     // check parity & stop bit
                     if ((~datin) || !(^(rxsr[9:1])))
                         exc_rxparity[1] <= !(exc_rxparity[0]);
@@ -180,7 +189,10 @@ module vtj1_ps2(
                         exc_rxoflow[1] <= !(exc_rxoflow[0]);
                 end
             end
-            xtrig <= clkfall ? 3'd1 : { xtrig[1:0], 1'b0 };
+            if (clkfall && !suppress_rx)
+                xtrig <= 3'd1;
+            else
+                xtrig <= { xtrig[1:0], 1'b0 };
         end
 
     // TX: Transmission of bytes from the host to the peripheral.  Not as
@@ -200,35 +212,41 @@ module vtj1_ps2(
     assign suppress_rx = tx_going; // no RX while any TX is happening
     wire tx_initiate = txctr >= 12; // pull ps2clk down to initiate
     wire tx_transmit = txctr >= 2 && txctr <= 11; // operate ps2dat
+    wire tx_transmit_ex = tx_transmit || txctr == 12; // pull ps2dat down
     wire tx_waitack = txctr == 1; // expecting acknowledgement
     wire [4:0] txctr_minus_1 = txctr - 1;
     always @(posedge clk)
         if (rst) begin
             txsr <= 10'd1023; // start with nothing to transmit
             txctr <= 5'd0; // start with not transmitting
-            txf_sema[1] <= 1'd0; // start with nothing in transmit FIFO
             exc_txbadack[1] <= 1'd0; // clear exception
-        end else if (tx_initiate && sixus)
+        end else if (txf_strobe) begin
+            // we have a byte to transmit: start transmitting
+            // If this happens when we're already transmitting, that's
+            // bad, but leave it up to the software to control it.
+            txctr <= 5'd31; // start the countdown
+            txsr <= { ~(^txf_data), txf_data, 1'b0 }; // fill shift register
+        end else if (!sixus) begin
+            // do nothing if it's not time
+        end else if (tx_initiate)
             txctr <= txctr_minus_1; // countdown to start
-        else if (tx_transmit && sixus && xtrig[2]) begin
+        else if (tx_transmit && clkfall) begin
             // transmitting a bit
             txctr <= txctr_minus_1; // countdown to next bit
             txsr <= { 1'b1, txsr[9:1] }; // shift out a bit
-        end else if (tx_waitack && sixus && xtrig[2]) begin
+        end else if (tx_waitack && clkfall) begin
             // acknowledgement bit
             txctr <= txctr_minus_1;
             if (datin) begin
-                // back ACK bit received
+                // bad ACK bit received
+                // (YYY is this broken by the delays in input signal handling?)
                 exc_txbadack[1] <= !(exc_txbadack[1]);
             end
-        end else if ((txf_sema[0] != txf_sema[1]) && !tx_going) begin
-            // we have a byte to transmit: start transmitting
-            txctr <= 5'd31; // start the countdown
-            txsr <= { ~(^txf_data), txf_data, 1'b0 }; // fill shift register
-            txf_sema[1] <= txf_sema[0]; // empty the FIFO
         end
     assign ps2clk = tx_initiate ? 1'b0 : 1'bz;
-    assign ps2dat = (tx_transmit && !txsr[0]) ? 1'b0 : 1'bz;
+    assign ps2dat = (tx_transmit_ex && !txsr[0]) ? 1'b0 : 1'bz;
+    assign irqa = (rxf_sema[0] != rxf_sema[1]); // RX has a byte
+    assign irqb = !tx_going; // TX is not busy
 endmodule
 
 // avg5() -- average of 5 input bits.  Should compact into a LUT5 (half

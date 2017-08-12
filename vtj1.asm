@@ -44,6 +44,8 @@
 ; software at build time.  Derived from vtj1-config.txt by vtj1-config-gen.tcl.
 INCLUDE vtj1-config.asm
 
+TEST_PS2_PORT = 0 ; debug thing, bypasses all the useful code
+
     cpu 6502
     code
 
@@ -1848,10 +1850,12 @@ start = *
     ldx #$ff
     txs
 
-    ; blank the LEDs
+    ; blank the onboard LEDs
     lda #0
     sta LEDOUT
+
 IF ENABLE_VISBELL | ENABLE_AUDBELL
+    ; and shut off the bell
     ; lda #0
     sta bellon
 ENDC
@@ -1870,6 +1874,10 @@ ENDC
 
     ; initialize serial port on slot 8
     jsr serial_start
+
+IF TEST_PS2_PORT
+    jsr test_ps2_port__entry
+ENDC
 
     ; initialize PS/2 port on slot 12
     ; clear the "exception" bits by writing a 1 to each
@@ -4100,6 +4108,159 @@ prleds__zero = *
     sta LEDOUT ; turn off onboard LEDs
     sta keyled_state ; turn off keyboard LEDs
     jmp keyled_update ; do that keyboard LED update, and return
+
+IF TEST_PS2_PORT
+    ; test_ps2_port is a special feature, enabled at build time, for
+    ; testing the PS/2 interface.  If you enable it, VTJ-1 *doesn't*work*
+    ; but instead will let you control PS/2 RX & TX over the serial port.
+    ; send [hex] to TX.  Sends back to you:
+    ;       anything RX'ed: in hex
+    ;       anything TX'ed: as [hex]
+    ;       if you TX before a TX was complete: '!'
+    ; keys it accepts: 0-9 a-f [ ] l L
+    ; the code starts at test_ps2_port__entry
+
+    ; handling hex digits 0-9
+test_ps2_port__digit_09 = *
+    sec
+    sbc #'0' ; convert '0' to 0, '1' to 1, etc
+    jmp test_ps2_port__xdigit ; and we have our hex digit
+
+    ; test_ps2_port__entry is where this test mode all starts
+test_ps2_port__entry = *
+    ; prompt message
+    lda #'p'
+    jsr txchar
+    lda #'s'
+    jsr txchar
+    lda #'/'
+    jsr txchar
+    lda #'2'
+    jsr txchar
+    lda #':'
+    jsr txchar
+    jsr txnewline
+
+    ; use btmp[0] to store the current accumuled input value
+    lda #0
+    sta btmp
+
+    ; main loop: check for serial port & PS/2 RX
+    lda #0 ; initial input value accumulator
+    pha
+test_ps2_port__main = *
+    lda #$1 ; test IRQ alpha8 (serial rx)
+    bit ICTL_PEA1
+    bne test_ps2_port__serrx ; if something is received, handle it
+    lda #$10 ; test IRQ alpha12 (ps/2 rx)
+    bit ICTL_PEA1
+    beq test_ps2_port__main ; if nothing is received, check again
+
+    ; handling RX on the PS/2 port
+    lda PS2A_BASE+PS2_RX ; get the byte
+    sta PS2A_BASE+PS2_RX ; and clear it from the fifo
+    jsr txhex ; give it to the tester
+    lda #' ' ; and a space following it
+    jsr txchar
+    jmp test_ps2_port__main ; and see if anything happens
+
+    ; handling RX on the serial port
+test_ps2_port__serrx = *
+    lda SER_BASE+SER_RX ; get the byte
+    sta SER_BASE+SER_RX ; and clear it from the FIFO
+    ; now see what we received & handle it
+    cmp #'[' ; handle '[' which resets btmp[0] to get a new value
+    beq test_ps2_port__begin
+    cmp #']' ; handle ']' which transmits btmp[0] to the PS/2 port
+    beq test_ps2_port__end
+    cmp #'l' ; handle 'l' to change LEDs fast
+    beq test_ps2_port__leds_fast
+    cmp #'L' ; handle 'L' to change LEDs too fast
+    beq test_ps2_port__leds_toofast
+    cmp #'0' ; check for numeric values in hexadecimal: 0-9 a-f
+    bmi test_ps2_port__bogus
+    cmp #58
+    bmi test_ps2_port__digit_09 ; hex digits 0-9
+    cmp #'a'
+    bmi test_ps2_port__bogus
+    cmp #'g'
+    bmi test_ps2_port__digit_af ; hex digits a-f
+
+    ; at this point, we're received a serial byte we don't handle
+test_ps2_port__bogus = *
+    lda #'?' ; let the tester know
+    jsr txchar
+    jmp test_ps2_port__main ; and get on with stuff
+
+    ; handling hex digits a-f
+test_ps2_port__digit_af = *
+    sec
+    sbc #87 ; convert 'a' to 10, 'b' to 11, etc
+
+    ; handling hex digits in numeric form
+test_ps2_port__xdigit = *
+    asl btmp ; shift our accumulated value left four bits
+    asl btmp
+    asl btmp
+    asl btmp
+    ora btmp ; and add in the new hex digit
+    sta btmp
+    jmp test_ps2_port__main ; and done
+
+    ; handling '[' which resets the accumulated numeric value
+test_ps2_port__begin = *
+    lda #0
+    sta btmp
+    jmp test_ps2_port__main ; and done
+
+    ; handling ']' which transmits the accumulated numeric value to the
+    ; PS/2 port
+test_ps2_port__end = *
+    ; see if the port is busy, by checking IRQ beta12
+    lda #$10
+    bit ICTL_PEB1
+    bne test_ps2_port__end2 ; branch if not busy
+    ; if the port is busy, we'll still TX, but we'll let the user know
+    ; with a '!'
+    lda #'!'
+    jsr txchar
+test_ps2_port__end2 = *
+    lda btmp ; get the byte we want to TX
+    sta PS2A_BASE+PS2_TX ; and TX it
+    ; now let the user know we've done so
+    lda #'['
+    jsr txchar
+    lda btmp
+    jsr txhex
+    lda #']'
+    jsr txchar
+    lda #' '
+    jsr txchar
+    jmp test_ps2_port__main ; and done
+
+test_ps2_port__leds_fast = *
+    ; test_ps2_port__leds_fast - 'l' - change LEDs as fast as the PS/2 interface
+    ; lets us transmit the two byte code
+    lda #$ed ; set keyboard LEDs command
+    sta keyboard_present ; fake this bit of state so keyboard_tx will work
+    jsr keyboard_tx ; transmit it
+    lda btmp ; led state
+    and #7 ; clean it up
+    jsr keyboard_tx ; transmit it
+    inc btmp ; new led state
+    jmp test_ps2_port__leds_fast ; and again
+
+test_ps2_port__leds_toofast = *
+    ; test_ps2_port__leds_toofast - 'L' - like 'l', but first TX a few LED
+    ; changes without waiting for port busy
+    lda #$ed
+    sta PS2A_BASE+PS2_TX
+    lda btmp
+    jsr txhex ; just a little delay, but at 115,200 baud it's a short one
+    sta PS2A_BASE+PS2_TX
+    jmp test_ps2_port__leds_fast
+
+ENDC
 
 ;; ;; ;; ;; Code: on-screen menu
 

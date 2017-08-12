@@ -174,10 +174,12 @@ module vtj1(
     reg [3:0] sixus_ctr = 4'd0;
     wire sixus = (sixus_ctr == 4'd10);
     always @(posedge clk)
-        if (sixus)
-            sixus_ctr <= 1'd0;
-        else
-            sixus_ctr <= sixus_ctr + 4'd1;
+        if (masterbaud[2]) begin
+            if (sixus)
+                sixus_ctr <= 1'd0;
+            else
+                sixus_ctr <= sixus_ctr + 4'd1;
+        end
 
     // General purpose RAM, $0000
 `ifdef BIG_RAM
