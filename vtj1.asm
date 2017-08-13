@@ -613,7 +613,7 @@ cursor_show__underline = *
     ; block.  Call this if you modify cursor_col, cursor_row, cursor_ptr,
     ; or TEXTRAM.
 cursor_hide = *
-    lda #0 ; delay cursor blinking for a time
+    lda #CURSOR_FRAMES-2 ; delay cursor blink by just a little
     sta scanctr
     lda cursor_shown ; is it shown now?
     beq cursor_hide__ret ; if not, do nothing

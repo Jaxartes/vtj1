@@ -2314,6 +2314,32 @@ proc pat_irm2 {} {
     return $s
 }
 
+set patterns(jumpdraw) "Draw 'a' while jumping around"
+# "jumpdraw": Draws a 77x20 block of the character 'a' by jumping around
+# with ^[[r;cH.  While it runs look for anomalies like leftover cursor
+# blocks.
+proc pat_jumpdraw {} {
+    set bw 77 ; # $bw/$bh/$bm must be coprime
+    set bh 20
+    set bm 117
+
+    set s ""
+
+    # clear the screen and set block cursor
+    append s [format {%c[2J} 27]
+    append s [format {%c[=3h} 27]
+
+    # draw them
+    for {set i [expr {$bw * $bh - 1}]} {$i >= 0} {incr i -1} {
+        set r [expr {1 + (($i * $bm) % $bh)}]
+        set c [expr {1 + (($i * $bm) % $bw)}]
+        append s [format {%c[%d;%dHa} 27 $r $c]
+    }
+    return $s
+
+    return $s
+}
+
 ## ## ## ## ## end of individual test patterns
 
 if {[info exists patterns($pattern)]} {
