@@ -43,8 +43,8 @@ NET "ps2a_clk"      LOC = "C9" | PULLUP;
 NET "ps2a_dat"      LOC = "A9" | PULLUP;
 
 # the other PS/2 port on this board
-NET "ps2a_clk"      LOC = "B8" | PULLUP;
-NET "ps2a_dat"      LOC = "A8" | PULLUP;
+# NET "ps2a_clk"      LOC = "B8" | PULLUP;
+# NET "ps2a_dat"      LOC = "A8" | PULLUP;
 
 # audio
 NET "o_audio_l"      LOC = "K15";
