@@ -130,7 +130,7 @@ XOFF_CHAR = 19 ; character code for XOFF
 ; $00: X X X X X X X X  X X X X X X X X
 ; $10: X X X X X X X X  X X X X X X X X
 ; $20: X X X X X X X _  _ X X X _ _ X X
-; $30: X X X X X X X X  X _ _ _ _ _ _ _
+; $30: X X X X X X X X  X _ X _ _ _ _ _
 ; $40: _ _ _ _ _ _ _ _  _ _ _ _ _ _ _ _
 ; $50: _ _ _ _ _ _ _ _  _ _ _ _ _ _ _ _
 ; $60: _ _ _ _ _ _ _ _  _ _ _ _ _ _ _ _
@@ -306,6 +306,7 @@ keyboard_present = $26 ; We've received an 'ack' from the keyboard & can
                        ; safely send to it.  If the keyboard isn't hooked
                        ; up and we try to send bytes to it, this software
                        ; will hang!
+kbdack = $3a ; will be set to $80 when keyboard sends ack (0xfa)
 
 ; Mode flag bits, altered via ESC [ ... {l,h} or other ways
 modeflags1 = $22
@@ -1396,6 +1397,13 @@ ps2_a_rx_irq = *
     lda PS2A_BASE+PS2_RX ; byte or exception code
     sta PS2A_BASE+PS2_RX ; make room for another on the device
     sta inbufl,x ; store in the buffer
+
+    ; see if it's an ACK which we handle specially
+    cmp #$FA
+    bne ps2_a_rx_irq__didack
+    lda #$80
+    sta kbdack
+ps2_a_rx_irq__didack = *
     
     ; and indicate the buffer is not empty
     lda #1
@@ -1427,14 +1435,40 @@ keyboard_tx__wait = *
 keyboard_tx__ret = *
     rts
 
+    ; keyboard_wait_ack(): Wait until an ack ($fa) byte has been received
+    ; from the keyboard, or about 1/10 of a second has elapsed without it.
+    ; Caller should have set kbdack to zero first.
+    ; Affects the A & X registers.
+keyboard_wait_ack = *
+    ldx #6 ; screen frames to wait before timing out (approximate)
+keyboard_wait_ack__loop1 = *
+    lda scanctr ; scan frame counter will update about 60 times a second
+keyboard_wait_ack__loop2 = *
+    bit kbdack ; check for acknowledgement - will set the sign flag
+    bmi keyboard_wait_ack__done ; branches when acknowledged
+    cmp scanctr ; see if scan frame counter has updated
+    beq keyboard_wait_ack__loop2 ; nope, continue waiting
+    dex ; yup, count it
+    bne keyboard_wait_ack__loop1 ; if it hasn't counted down yet, continue
+    ; done waiting due to timeout
+keyboard_wait_ack__done = *
+    ; done waiting due to ack or timeout
+    rts
+
     ; keyled_update(): Transmit the new keyboard LED settings to the keyboard.
     ; They're found in keyled_state.
 keyled_update = *
+    lda #0 ; set kbdack to zero for when we wait for acknowledgement
+    sta kbdack
     lda #$ED ; command byte
     jsr keyboard_tx ; transmit it
+    jsr keyboard_wait_ack ; wait for it to be acknowledged
+    lda #0 ; set kbdack to zero for when we wait for acknowledgement
+    sta kbdack
     lda keyled_state ; LED state
     and #$07
-    jmp keyboard_tx ; transmit it & return
+    jsr keyboard_tx ; transmit it
+    jmp keyboard_wait_ack ; wait for it to be acknowledged, then return
 
     ; key_repeat_on() & key_repeat_off(): Turn on/off "typematic" repeat
     ; on all keys.  VT102 had a few keys exempt from that; but while it's
