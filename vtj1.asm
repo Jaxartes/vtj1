@@ -118,6 +118,7 @@ TEXTRAM = $8000 ; start of 8kB text RAM
 FONTRAM = $a000 ; start of 2kB (or 4kB) font RAM
 
 TXMODE = $30 ; code for 8n2, compatible with 8n1
+TXMODE_BREAK = $70 ; that plus a serial BREAK character
 RXMODE = $20 ; code for 8n1
 
 FONT_INFO_CHAR = 127 ; character code that instead of holding an actual
@@ -130,7 +131,7 @@ XOFF_CHAR = 19 ; character code for XOFF
 ; $00: X X X X X X X X  X X X X X X X X
 ; $10: X X X X X X X X  X X X X X X X X
 ; $20: X X X X X X X _  _ X X X _ _ X X
-; $30: X X X X X X X X  X _ X _ _ _ _ _
+; $30: X X X X X X X X  X X X _ _ _ _ _
 ; $40: _ _ _ _ _ _ _ _  _ _ _ _ _ _ _ _
 ; $50: _ _ _ _ _ _ _ _  _ _ _ _ _ _ _ _
 ; $60: _ _ _ _ _ _ _ _  _ _ _ _ _ _ _ _
@@ -307,6 +308,9 @@ keyboard_present = $26 ; We've received an 'ack' from the keyboard & can
                        ; up and we try to send bytes to it, this software
                        ; will hang!
 kbdack = $3a ; will be set to $80 when keyboard sends ack (0xfa)
+IF ENABLE_MENU
+keyboard_repeat = $39 ; "typematic" keyboard rate/delay setting in use
+ENDC
 
 ; Mode flag bits, altered via ESC [ ... {l,h} or other ways
 modeflags1 = $22
@@ -1042,6 +1046,10 @@ keyboard_reset = *
     ; for the FIFO to clear (by checking the beta interrupt line on slot
     ; 12).  But here we don't; if we can't send, it's possibly just because
     ; the keyboard interface is stuck in which case we *want* a timeout.
+IF ENABLE_MENU
+    lda #$2b ; record the default "typematic" keyboard repeat rate & delay
+    sta keyboard_repeat
+ENDC
     lda #$ff ; keyboard reset command
         ; This will reset various things about the terminal.  Including
         ; scan code set and key repeat; and the keyboard will perform
@@ -1435,40 +1443,36 @@ keyboard_tx__wait = *
 keyboard_tx__ret = *
     rts
 
-    ; keyboard_wait_ack(): Wait until an ack ($fa) byte has been received
-    ; from the keyboard, or about 1/10 of a second has elapsed without it.
-    ; Caller should have set kbdack to zero first.
-    ; Affects the A & X registers.
-keyboard_wait_ack = *
+    ; keyboard_tx_acked(): Transmit a byte (in the accumulator) to the
+    ; keyboard.  Then wait (up to about 1/10 second) for it to respond
+    ; with an ack ($fa).  Affects the A & X registers.
+keyboard_tx_acked = *
+    ldx #0 ; set kbdack to zero; it'll be set to $80 when ack is received
+    stx kbdack
+    jsr keyboard_tx ; transmit it to the keyboard
     ldx #6 ; screen frames to wait before timing out (approximate)
-keyboard_wait_ack__loop1 = *
-    lda scanctr ; scan frame counter will update about 60 times a second
-keyboard_wait_ack__loop2 = *
-    bit kbdack ; check for acknowledgement - will set the sign flag
-    bmi keyboard_wait_ack__done ; branches when acknowledged
+keyboard_tx_acked__loop1 = *
+    lda scanctr ; scan frame counter will udpate about 60 times a second
+keyboard_tx_acked__loop2 = *
+    bit kbdack ; check for acknowledgement - $80 will set the sign flag
+    bmi keyboard_tx_acked__done ; branches when acknowledged
     cmp scanctr ; see if scan frame counter has updated
-    beq keyboard_wait_ack__loop2 ; nope, continue waiting
+    beq keyboard_tx_acked__loop2 ; nope, continue waiting
     dex ; yup, count it
-    bne keyboard_wait_ack__loop1 ; if it hasn't counted down yet, continue
+    bne keyboard_tx_acked__loop1 ; if it hasn't counted down yet, continue
     ; done waiting due to timeout
-keyboard_wait_ack__done = *
+keyboard_tx_acked__done = *
     ; done waiting due to ack or timeout
     rts
 
     ; keyled_update(): Transmit the new keyboard LED settings to the keyboard.
     ; They're found in keyled_state.
 keyled_update = *
-    lda #0 ; set kbdack to zero for when we wait for acknowledgement
-    sta kbdack
     lda #$ED ; command byte
-    jsr keyboard_tx ; transmit it
-    jsr keyboard_wait_ack ; wait for it to be acknowledged
-    lda #0 ; set kbdack to zero for when we wait for acknowledgement
-    sta kbdack
+    jsr keyboard_tx_acked ; transmit it & wait for $fa reply
     lda keyled_state ; LED state
     and #$07
-    jsr keyboard_tx ; transmit it
-    jmp keyboard_wait_ack ; wait for it to be acknowledged, then return
+    jmp keyboard_tx_acked ; transmit it & wait for $fa reply & return
 
     ; key_repeat_on() & key_repeat_off(): Turn on/off "typematic" repeat
     ; on all keys.  VT102 had a few keys exempt from that; but while it's
@@ -1476,10 +1480,10 @@ keyled_update = *
     ; the terminal emulators I've seen don't seem to do that.
 key_repeat_on = *
     lda #$fa ; command byte
-    jmp keyboard_tx ; transmit it & return
+    jmp keyboard_tx_acked ; transmit it & wait for $fa reply & return
 key_repeat_off =*
     lda #$f8 ; command byte
-    jmp keyboard_tx ; transmit it & return
+    jmp keyboard_tx_acked ; transmit it & wait for $fa reply & return
 
 ;; ;; ;; ;; Code: serial port (communication to host computer)
 
@@ -4705,6 +4709,57 @@ menu_set_modeflags__clearit = *
     and 0,y
     sta 0,y
     rts
+
+    ; menu_txbreak()
+    ; Transmit a serial BREAK for about 4/10 a second.
+    ; Note: assumes there is nothing else being transmitted, which would
+    ; be clobbered by the BREAK if there were.
+    ; Beeps while it's doing it.
+menu_txbreak = *
+    lda #TXMODE_BREAK ; start the BREAK
+    sta SER_BASE+SER_TB
+    jsr prbell ; start a bell (audible or visual or both as configured)
+    ldx #24 ; 4/10 of a second is 24 screen frames at 60Hz; count them here
+menu_txbreak__loop1 = *
+    lda scanctr ; and this'll change 60 times a second
+menu_txbreak__loop2 = *
+    cmp scanctr ; has it changed
+    beq menu_txbreak__loop2 ; branch if it hasn't
+    dex ; it has, count down toward zero
+    bne menu_txbreak__loop1 ; continue doing so until we reach zero
+
+    lda #TXMODE ; end the BREAK
+    sta SER_BASE+SER_TB
+    rts
+
+    ; menu_get_typematic_rate()
+    ; Check the "typematic" (keyboard repeat) rate & delay setting.
+    ; Return, in accumulator, '*' if it matches the byte value in the
+    ; accumulator (encoded as for keyboard command $f3) and ' ' if it
+    ; does not.
+menu_get_typematic_rate = *
+    cmp keyboard_repeat ; compare with what was set last, or default
+    beq menu_get_typematic_rate__eq
+    lda #' ' ; not equal
+    rts
+menu_get_typematic_rate__eq = *
+    lda #'*' ; equal
+    rts
+
+    ; menu_set_typematic_rate()
+    ; Set the "typematic" (keyboard repeat) rate & delay setting.
+    ; The new setting should be in the accumulator, encoded as for
+    ; keyboard command $f3.
+    ; This has no effect on whether repeat is *enabled* (which is a
+    ; different setting) just its timing.
+menu_set_typematic_rate = *
+    sta keyboard_repeat ; record it for when we want to know later
+    pha ; save the value
+    lda #$f3 ; keyboard command "Set Typematic Rate/Delay"
+    jsr keyboard_tx_acked ; transmit the command & wait for $fa reply
+    pla ; get the vlue
+    jmp keyboard_tx_acked ; transmit the value & wait for $fa reply & return
+
 ENDC ; IF ENABLE_MENU
 
 ;; ;; ;; ;; Lookup tables
@@ -5732,6 +5787,32 @@ ENDC ;; ENABLE_MENU_LOWBAUDS
 
     db 4, 13, 10 ; end of field & of line
 
+    ; Keyboard key repeat ("typematic") rate
+    asc "Keyboard repeat rate: "
+
+    db 3
+    dw menu_get_typematic_rate
+    dw menu_set_typematic_rate
+    db $03 ; 21.8/sec after 0.25 sec
+    asc "fast"
+    db 4
+    asc "  "
+
+    db 3
+    dw menu_get_typematic_rate
+    dw menu_set_typematic_rate
+    db $2b ; 10.9/sec after 0.5 sec
+    asc "medium"
+    db 4
+    asc "  "
+
+    db 3
+    dw menu_get_typematic_rate
+    dw menu_set_typematic_rate
+    db $53 ; 5.5/sec after 0.75 sec
+    asc "slow"
+    db 4, 13, 10 ; end of field & of line
+
     ; Stripping top bit enable
     asc "Handling of upper-128 bytes received: "
 
@@ -5761,6 +5842,16 @@ ENDC ;; ENABLE_MENU_LOWBAUDS
     dw start ; will 'jsr start' but then start() resets the stack pointer
     db 255 ; bogus value so it won't ever show up as enabled
     asc "GO!"
+
+    db 4, 13, 10 ; end of field & of line
+
+    ; Send a serial BREAK character
+    asc "Send serial BREAK character: "
+    db 3
+    dw menu_get_baud ; won't ever show up as enabled, with bogus value below
+    dw menu_txbreak
+    db 255
+    asc "transmit"
 
     db 4, 13, 10 ; end of field & of line
 
