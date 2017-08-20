@@ -57,7 +57,7 @@ clock_rate=77 # Clock rate in MHz.  The following values are currently
               #     75 - 75MHz; close to 3x the VGA pixel rate
               # Higher clock rates are preferable; lower ones can have
               # trouble with higher baud rates.
-writeable_rom=1 # The VTJ-1's software resides in memory which I'll call "ROM"
+writeable_rom=0 # The VTJ-1's software resides in memory which I'll call "ROM"
                 # because there's usually no need to write to it.  But
                 # when developing VTJ-1's software, it's convenient to be
                 # able to write to it.
@@ -68,7 +68,7 @@ big_rom=0 # The VTJ-1's software currently fits into 8kB of memory.
           # But if you're expanding it somehow you might need more.
           # A '0' makes it 8kB
           # A '1' makes it 16kB
-writeable_font=1 # The VTJ-1's font memory doesn't normally need to be
+writeable_font=0 # The VTJ-1's font memory doesn't normally need to be
                  # writable either.  But it can be.
                  # A '0' makes it read-only
                  # A '1' makes it writeable
@@ -101,20 +101,20 @@ devel_escapes=1 # Enables some VTJ-1 specific "developer" escape codes
                 # A '0' disables them
                 # A '1' enables them
                 # If you're going to use reload.tcl, you need a '1' here
-devel_escapes_2=1 # Enables some further VTJ-1 specifc "developer" escape
+devel_escapes_2=0 # Enables some further VTJ-1 specifc "developer" escape
                   # codes, beyond the ones covered by 'devel_escapes'.
                   # If 'devel_escapes' is not also enabled, this will have
                   # no effect.
                   # A '0' disables them
                   # A '1' enables them
                   # They're not usually useful
-progdelay=1 # Enables a further VTJ-1 "developer" escape code to
+progdelay=0 # Enables a further VTJ-1 "developer" escape code to
             # set a programmable delay to slow down VTJ-1 for testing.
             # If 'devel_escapes' is not also enabled, this won't
             # do much good.
             # A '0' disables it
             # A '1' enables it
-bufhwm=1 # Enables code to track the "high water mark" of the
+bufhwm=0 # Enables code to track the "high water mark" of the
          # input buffer, for debugging it.
          # A '0' disables it
          # A '1' enables it
@@ -126,7 +126,7 @@ video_timing_tester=0 # VTJ-1 has a "video timing tester" device which
 menu=1 # Enables a handy on-screen menu on the VTJ-1.
        # A '0' disable it
        # A '1' enables it
-menu_lowbauds=1 # Include low (<9600) baud rates in the VTJ-1's on screen
+menu_lowbauds=0 # Include low (<9600) baud rates in the VTJ-1's on screen
                 # menu.  While these are annoyingly slow in the present
                 # day, they were used historically and there may be
                 # occasions when they're desired.
