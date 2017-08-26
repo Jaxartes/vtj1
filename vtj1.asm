@@ -935,6 +935,15 @@ video_start__font__not10 = *
     sta textsz
     bne video_start__font__done ; branches always
 video_start__font__not12 = *
+    cmp #14
+    bne video_start__font__not14
+    ; 8x14 font = 80x34 text
+    lda #14
+    sta fontsz
+    lda #34
+    sta textsz
+    bne video_start__font__done ; branches always
+video_start__font__not14 = *
     ; 8x16 font = 80x30 text
     lda #16
     sta fontsz
@@ -971,12 +980,17 @@ video_start__linctl_b = *
     bpl video_start__linctl_b ; do more
 
     ; initialize interrupt handler(s)
-    lda #2 ; enabling slot 1's alpha interrupt (video row)
+    ;       enable slot 1's alpha interrupt (video row)
+    ;       enable slot 8's alpha interrupt (serial RX)
+    ;       enable slot 12's alpha interrupt (PS/2 RX)
+    ;       disable all other interrupts
+    lda #2
     sta ICTL_ENA0
-    lda #$11 ; enabling slot 8's alpha interrupt (serial RX)
-             ; and slot 12's alpha interrupt (PS/2 RX)
+    lda #$11
     sta ICTL_ENA1
-    ; the other interrupt bits will already be zero after reset
+    lda #0
+    sta ICTL_ENB0
+    sta ICTL_ENB1
 
     ; initialize scroll & cursor state
     lda #0 ; top of scroll area is top of screen

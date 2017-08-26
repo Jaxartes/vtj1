@@ -23,7 +23,7 @@ font=freebsd-boot-font-vt
     # external software.
     # 
     # Suggested values: lat1-12-vt; cafe-12-vt;
-    # sony-8x16-vt; freebsd-boot-font-vt.
+    # sony-8x16-vt; freebsd-boot-font-vt; lat-10-vt; lat-14-vt.
     # 
     # I personally like "lat1-12-vt" the best, but you have to have the
     # font installed on your build machine at

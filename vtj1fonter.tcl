@@ -265,6 +265,136 @@ set db {
         {chars 7 185} {char 194} {char 196} {char 200} {rem 199-208}
         {chars 47 209} {rem 209-255}
     }
+    lat1-10-vt
+    "Linux console font lat1-10 mapped for VT102 character sets"
+    {
+        {file /usr/share/consolefonts/lat1-10.psf.gz 4 1 10 10 bin.gz}
+        {rem glyphs 0-31: characters 95-126 of special character set ("0")}
+        {char  95} {rem 0 (95) underscore; though VT102 manual says blank}
+        {char   4} {rem 1 (96) black diamond}
+        {lit 170 170 84 84 170 170 84 84} {rem 2 (97) checkerboard}
+        {char   5} {rem 3 (98) H/T}
+        {char   6} {rem 4 (99) F/F}
+        {char   7} {rem 5 (100) C/R}
+        {char   8} {rem 6 (101) L/F}
+        {char 176} {rem 7 (102) degree}
+        {char 177} {rem 8 (103) plus over minus}
+        {char  17} {rem 9 (104) N/L}
+        {char  18} {rem 10 (105) V/T}
+        {char 201} {rem 11 (106) LR corner}
+        {char 204} {rem 12 (107) UR corner}
+        {char 198} {rem 13 (108) UL corner}
+        {char 195} {rem 14 (109) UR corner}
+        {char 207} {rem 15 (110) cross}
+        {lit 255} {rem 16 (111) horizontal line high (0/10)}
+        {lit 0 0 255} {rem 17 (112) horizontal line mid-high(2/10)}
+        {lit 0 0 0 0 255} {rem 18 (113) horizontal line middle(4/10)}
+        {lit 0 0 0 0 0 0 0 255} {rem 19 (114) horizontal line mid-low(7/10)}
+        {lit 0 0 0 0 0 0 0 0 0 255} {rem 20 (115) horizontal line low(9/10)}
+        {char 199} {rem 21 (116) tee, point to right}
+        {char 205} {rem 22 (117) tee, point to left}
+        {char 203} {rem 23 (118) tee, point to top}
+        {char 206} {rem 24 (119) tee, point to bottom}
+        {char 197} {rem 25 (120) vertical line, middle}
+        {char  19} {rem 26 (121) less than or equal}
+        {char  20} {rem 27 (122) greater than or equal}
+        {char  31} {rem 28 (123) pi}
+        {char  21} {rem 29 (124) not equal}
+        {char 163} {rem 30 (125) UK pound}
+        {char 183} {rem 31 (126) middle dot}
+
+        {rem glyphs 32-126: characters 32-126 of US character set ("B")}
+        {chars 95 32}
+
+        {rem glyph 127: font info}
+        {litx 0a}
+
+        {rem glyphs 128-255: These are not needed for the VT102's built
+         in character sets.  The character set story for later VT models
+         seems quite complicated.  The VT102's "alternate character set"
+         option would add another 127 glyphs, but I don't see any documentation
+         and I suspect they weren't very standard.
+
+         So, what I'm going to do is: just pack in whatever characters
+         are in the font but not used above}
+
+        {rem and leaving out entirely:
+            horizontal lines, I've got my own: 175, 192, 202, 208
+            duplicate of space: 0
+            like a cedilla on its own: 184
+            one of the half lines: 193
+        }
+
+        {chars 2 1} {chars 8 9} {chars 9 22} {rem 128-146}
+        {chars 36 127} {chars 11 164} {chars 5 178} {rem 147-198}
+        {chars 7 185} {char 194} {char 196} {char 200} {rem 199-208}
+        {chars 47 209} {rem 209-255}
+    }
+    lat1-14-vt
+    "Linux console font lat1-14 mapped for VT102 character sets"
+    {
+        {file /usr/share/consolefonts/lat1-14.psf.gz 4 1 14 14 bin.gz}
+        {rem glyphs 0-31: characters 95-126 of special character set ("0")}
+        {char  95} {rem 0 (95) underscore; though VT102 manual says blank}
+        {char   4} {rem 1 (96) black diamond}
+        {lit 170 170 84 84 170 170 84 84 170 170 84 84} {rem 2 (97) checkerboard}
+        {char   5} {rem 3 (98) H/T}
+        {char   6} {rem 4 (99) F/F}
+        {char   7} {rem 5 (100) C/R}
+        {char   8} {rem 6 (101) L/F}
+        {char 176} {rem 7 (102) degree}
+        {char 177} {rem 8 (103) plus over minus}
+        {char  17} {rem 9 (104) N/L}
+        {char  18} {rem 10 (105) V/T}
+        {char 201} {rem 11 (106) LR corner}
+        {char 204} {rem 12 (107) UR corner}
+        {char 198} {rem 13 (108) UL corner}
+        {char 195} {rem 14 (109) UR corner}
+        {char 207} {rem 15 (110) cross}
+        {lit 255} {rem 16 (111) horizontal line high (0/14)}
+        {lit 0 0 0 255} {rem 17 (112) horizontal line mid-high(3/14)}
+        {lit 0 0 0 0 0 0 255} {rem 18 (113) horizontal line middle(6/14)}
+        {lit 0 0 0 0 0 0 0 0 0 255} {rem 19 (114) horizontal line mid-low(9/14)}
+        {lit 0 0 0 0 0 0 0 0 0 0 0 0 0 255} {rem 20 (115) horizontal line low(13/14)}
+        {char 199} {rem 21 (116) tee, point to right}
+        {char 205} {rem 22 (117) tee, point to left}
+        {char 203} {rem 23 (118) tee, point to top}
+        {char 206} {rem 24 (119) tee, point to bottom}
+        {char 197} {rem 25 (120) vertical line, middle}
+        {char  19} {rem 26 (121) less than or equal}
+        {char  20} {rem 27 (122) greater than or equal}
+        {char  31} {rem 28 (123) pi}
+        {char  21} {rem 29 (124) not equal}
+        {char 163} {rem 30 (125) UK pound}
+        {char 183} {rem 31 (126) middle dot}
+
+        {rem glyphs 32-126: characters 32-126 of US character set ("B")}
+        {chars 95 32}
+
+        {rem glyph 127: font info}
+        {litx 0e}
+
+        {rem glyphs 128-255: These are not needed for the VT102's built
+         in character sets.  The character set story for later VT models
+         seems quite complicated.  The VT102's "alternate character set"
+         option would add another 127 glyphs, but I don't see any documentation
+         and I suspect they weren't very standard.
+
+         So, what I'm going to do is: just pack in whatever characters
+         are in the font but not used above}
+
+        {rem and leaving out entirely:
+            horizontal lines, I've got my own: 175, 192, 202, 208
+            duplicate of space: 0
+            like a cedilla on its own: 184
+            one of the half lines: 193
+        }
+
+        {chars 2 1} {chars 8 9} {chars 9 22} {rem 128-146}
+        {chars 36 127} {chars 11 164} {chars 5 178} {rem 147-198}
+        {chars 7 185} {char 194} {char 196} {char 200} {rem 199-208}
+        {chars 47 209} {rem 209-255}
+    }
     freebsd-boot-font
     "FreeBSD boot_font.c"
     {

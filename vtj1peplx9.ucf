@@ -20,8 +20,8 @@ NET "leds[0]"      LOC = "N16"; # bottom LED
 NET "leds[1]"      LOC = "N14";
 NET "leds[2]"      LOC = "M14";
 NET "leds[3]"      LOC = "M13";
-# four more of them not used by this project at this time:
-#NET "LEDS[4]"      LOC = "L12";
+NET "led1"         LOC = "L12";
+# three more of them not used by this project at this time:
 #NET "LEDS[5]"      LOC = "L13";
 #NET "LEDS[6]"      LOC = "L14";
 #NET "LEDS[7]"      LOC = "L16"; # top LED
