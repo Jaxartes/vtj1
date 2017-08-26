@@ -95,7 +95,7 @@ With brief descriptions; organized by conceptual component.
             $readmemh() in Verilog
         testpats.tcl - Send test patterns to VTJ-1 to display things.
         vtj1fonter.tcl - convert bitmap fonts to VTJ-1's font.mem
-        vtt_analyze.tcl - timing tester, hostside companion of vtj1_video.v
+        vtt_analyze.tcl - timing tester, host-side companion of vtj1_video.v
         "booty" - used before I developed the "reload" program:
             bootloader-idea.txt - describes its protocol
             booty.asm - the FPGA-side part of it, in 6502 assembly

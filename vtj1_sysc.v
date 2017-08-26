@@ -76,6 +76,7 @@ module vtj1_sysc(
     always @(posedge clk)
         if (rst) begin
             alpha_enas <= 16'd0;
+            beta_enas <= 16'd0;
             clksig[1] <= 1'd0;
         end else begin
             // reading registers

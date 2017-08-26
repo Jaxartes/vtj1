@@ -223,7 +223,7 @@ MAX_STORED_ROW = 50 ; highest numbered row that fits in TEXTRAM
 
 ; Scroll & cursor control data.  Used by the pr*() functions.
 ; Before moving the cursor, call cursor_hide().  Most things that move it
-; need to clear cursor_defm() too; except in prtab() and prglyph().
+; need to clear cursor_defm too; except in prtab() and prglyph().
 ; And follow with a call to cursor_figure() to fill in cursor_ptr.
 scroll_top = $10 ; top row of scrolling region (0-49)
 scroll_bot = $11 ; bottom row of scrolling region (scroll_top-49)
@@ -409,7 +409,7 @@ txdbg MACRO
 ENDM
 ENDC ; ENABLE_DEVEL
 
-    ; pgalign(): Align whatever followed to a page (256 byte) boundary
+    ; pgalign(): Align whatever follows to a page (256 byte) boundary
     ; in memory.
 pgalign MACRO
 IF ENABLE_PGALIGN
@@ -599,7 +599,7 @@ cursor_show_raw = *
     rol a
     cmp #$80
     rol a
-    and #$77 ; after rotation, etract the bit fields
+    and #$77 ; after rotation, extract the bit fields
     sta atmp ; temporarily stash them
     lda cursor_backing ; and get the bits we aren't going to move
     and #$88
@@ -768,7 +768,6 @@ video_irq = *
 
     ; now compute video timings for the current 'scanline' value
     ;       0-479 -- visible area
-    ;           even & odd lines have different values
     ;       480-489 -- front porch
     ;           not visible
     ;       490-491 -- sync pulse
@@ -780,9 +779,8 @@ video_irq = *
     cmp #2
     bpl video_porch ; 512 <= scanline
     lda scanline
-    bpl video_visible ; 256 <= scanline <= 383
     cmp #224
-    bmi video_visible ; 384 <= scanline < 480
+    bcc video_visible ; 256 <= scanline < 480
     cmp #234
     bmi video_porch ; 480 <= scanline < 490
     cmp #236
@@ -795,13 +793,13 @@ video_porch = *
     lda scanline
     cmp #12 ; scan line 524 is followed by zero
     beq video_newframe
-    jmp video_next
+    bne video_next ; note: branch always taken
 video_sync = *
     ; this row is in the sync pulse
     lda #$00
     sta V_SC0
     ; don't bother setting text address, no-one can see it
-    jmp video_next
+    beq video_next ; note: branch always taken
 video_visible = *
     ; This row is in the visible area.
     ; V_SC0 gets:
@@ -877,9 +875,9 @@ video_newframe = *
     sta scanline+1
     sta linctl_cur ; and that'll be the first text row
     sta linctl_cursl ; and the first scan line of it
-    inc scanctr ; one more frame drawn; used for timing
+    inc scanctr ; count: one more frame drawn; used for timing
 IF ENABLE_VISBELL | ENABLE_AUDBELL
-    sta frame4bell ; one more frame drawn; used for timing
+    sta frame4bell ; count: one more frame drawn; used for timing
 ENDC
     jmp irq ; handle any more IRQs that are pending
 
@@ -917,12 +915,7 @@ video_start__tloop = *
 
     ; Look in font RAM to find out how many lines our font has.  We
     ; recognize 8x10, 8x12, and 8x16 fonts.
-    lda #FONTRAM>>8 ; figure out address of font info byte
-    sta irqtmp+1
-    lda #FONT_INFO_CHAR
-    sta irqtmp
-    ldy #0 ; read it
-    lda (irqtmp),y
+    lda FONTRAM+FONT_INFO_CHAR ; read the font info byte from font RAM
     and #$1f ; extract font height in pixels
     cmp #10 ; is it an 8x10 font?
     bne video_start__font__not10
@@ -1066,8 +1059,8 @@ keyboard_reset__wloop = *
     cmp scanctr ; compare current & saved scan counter values
     beq keyboard_reset__wloop ; nothing has happened & no time has passed
     ; 1/60 second has elapsed
-    lda scanctr ; and new current value to compare against
-    dex ; one fewer such period to wait
+    lda scanctr ; get new current value to compare against
+    dex ; one fewer 1/60 sec period to wait
     bne keyboard_reset__wloop ; branch if haven't timed out yet
     ; a whole second has elapsed without acknowledgement; report timeout
     sec
@@ -1077,10 +1070,10 @@ keyboard_reset__input = *
     ; it's what we wanted.
     jsr getinput ; get the input
     cmp #INBUF_ET_PS2CH
-    bne keyboard_reset__wloop ; it wasn't from keyboard
+    bne keyboard_reset__wloop ; branch if it wasn't from keyboard
     txa
     cmp #$FA
-    bne keyboard_reset__wloop ; it wasn't an ACK
+    bne keyboard_reset__wloop ; branch if it wasn't an ACK
     ; keyboard has acknowledged the reset; we're done
     sta keyboard_present ; indicate keyboard present, note accum = $FA != 0
     clc
@@ -5846,7 +5839,7 @@ ENDC ;; ENABLE_MENU_LOWBAUDS
     db 4, 13, 10 ; end of field & of line
 
     ; Send a serial BREAK character
-    asc "Send serial BREAK character: "
+    asc "Send serial BREAK character now: "
     db 3
     dw menu_get_baud ; won't ever show up as enabled, with bogus value below
     dw menu_txbreak

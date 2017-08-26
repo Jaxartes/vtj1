@@ -459,26 +459,26 @@ module vtj1(
     // address decoding
 
     always @* begin
-        ram_wen =  8'd0;
-        rom_wen =  8'd0;
-        text_wen = 8'd0;
-        font_wen = 8'd0;
-        io_wen =   8'd0;
+        ram_wen =  1'd0;
+        rom_wen =  1'd0;
+        text_wen = 1'd0;
+        font_wen = 1'd0;
+        io_wen =   1'd0;
 
         bus_red = 8'd0;
         casex (bus_adr[15:12])
-        4'b0xxx: ram_wen =  bus_wen;
-        4'b100x: text_wen = bus_wen;
-        4'b1010: font_wen = bus_wen;
-        4'b1011: io_wen =   bus_wen;
-        4'b11xx: rom_wen =  bus_wen;
+        4'b0xxx: ram_wen =  bus_wen;    // $0000-$7fff - general memory
+        4'b100x: text_wen = bus_wen;    // $8000-$9fff - text memory
+        4'b1010: font_wen = bus_wen;    // $a000-$afff - font memory
+        4'b1011: io_wen =   bus_wen;    // $b000-$bfff - memory mapped I/O
+        4'b11xx: rom_wen =  bus_wen;    // $c000-$ffff - program memory
         endcase
         casex (bus_adr_d1[15:12])
-        4'b0xxx: bus_red = ram_red;
-        4'b100x: bus_red = text_red;
-        4'b1010: bus_red = font_red;
-        4'b1011: bus_red = io_red;
-        4'b11xx: bus_red = rom_red;
+        4'b0xxx: bus_red = ram_red;     // $0000-$7fff - general memory
+        4'b100x: bus_red = text_red;    // $8000-$9fff - text memory
+        4'b1010: bus_red = font_red;    // $a000-$afff - font memory
+        4'b1011: bus_red = io_red;      // $b000-$bfff - memory mapped I/O
+        4'b11xx: bus_red = rom_red;     // $c000-$ffff - program memory
         endcase
     end
 

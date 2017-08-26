@@ -21,8 +21,7 @@
  *      DO - memory write bus (out of CPU)
  *      WE - 1 if CPU is performing a write; 0 otherwise
  *      IRQ - looks to be active high
- *      NMI - has some weird pseudo edge triggering thing, I'm not
- *          about to mess with it
+ *      NMI - pseudo rising edge triggered
  *      idis - a signal I added, it gives the value of the CPU's
  *          interrupt disabled bit, for debugging
  */

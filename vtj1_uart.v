@@ -178,7 +178,7 @@ module vtj1_uart(
             txctr <= 4'd15;
             txf_sema[1] <= txf_sema[0];
         end else if (txbaud1) begin
-            // Time to transmit another bit.  From txsr if empty, otherwise
+            // Time to transmit another bit.  From txsr if nonempty, otherwise
             // from the FIFO.  If there aren't other bits we'll just
             // transmit '1' until we get some.
             if (txctr > 4'd1) begin
