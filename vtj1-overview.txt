@@ -169,13 +169,8 @@ To use the VTJ-1 (comparatively) quickly with the packaged bitfile:
         one of the two following key combinations:
             alt-apps ("apps" looks like a menu bar)
             ctrl-alt-delete
-    + If you want to use VTJ-1 as a login terminal, there are some
-    limitations.  The FTDI driver on some systems doesn't support
-    all the calls needed in a login terminal.  One hackaround is,
-    once you're logged in, to run a program like 'script' that sets up
-    a pseudo terminal.
-    + Suggested terminal type to use on Linux: "vt102"
-    (if your system has a "vt102-color" that would be even better)
+    + If you want to use VTJ-1 as a login terminal to a system like
+    Linux, see "Using VTJ-1 - host side setup" below for tips.
     + The "reset" button on the Arcade MegaWing serves as a reset button
     for VTJ-1.  When you press the button the software restarts itself.
     A reset option is also available in VTJ-1's onscreen menu.
@@ -193,6 +188,80 @@ it'd be possible, by some code modifications I haven't tried yet, to
 lower the block RAM usage a little further depending on your font choice:
     + Text memory is 8kB, which could be lowered:
         - to 6kB if you use an 8x16 font (not 8x10 or 8x12)
+
++-+-------------------------------+-+
+| | Using VTJ-1 - host side setup | |
++-+-------------------------------+-+
+
+Using a terminal like VTJ-1 to log in to a system like Linux benefits from
+some settings on the host (Linux) side.  The particular settings will
+depend on your host system, how you connect to it, and what software you
+use and how that is set up.  This section provides a few hints, which 
+seem to help on a Linux setup (Raspberry Pi 3 running Raspbian) with which
+VTJ-1 was tested.
+
+TTY device limitations:
+    It seems that the Linux drivers for some USB-to-serial converters don't
+    support TIOCSCTTY ioctl.  The symptom of this is the following message
+    when you log in:
+-bash: cannot set terminal process group (2805): Inappropriate ioctl for device
+-bash: no job control in this shell
+    which means things like control-C don't work as expected.
+
+    A workaround is to run 'script /dev/null'.  It substitutes a pseudo
+    terminal (PTY) for the terminal.  This would have to be done each
+    time you log in.
+
+7-bit only:
+    VTJ-1 only supports 7-bit ASCII characters.  Newer systems that want
+    to emit 8-bit character codes like UTF-8 will sometimes show garbage
+    as a result.  Setting the language to something that doesn't include
+    UTF-8 characters will solve that.  Example:
+        LANG=en_US ; export LANG
+    This would have to be done each time you log in unless you place it
+    in a login dotfile like .profile.
+
+Terminal name:
+    Of the terminal types Linux knows about, "vt102" is probably the
+    closest to VTJ1:
+        TERM=vt102 ; export TERM
+    This would have to be done each time you log in unless you place it
+    in a login dotfile like .profile.
+
+    A somewhat customized terminfo file has been provided as vtj1-terminfo.txt.
+    The following command:
+        tic -o ~/.terminfo vtj1-terminfo.txt
+    will update the terminfo database with at terminal named "vtj1" which
+    you may use:
+        TERM=vtj1 ; export TERM
+    The "tic" command would only have to be run once.
+
+    Some older systems have termcap, not terminfo; a termcap can be generated
+    on a Linux system by:
+        infotocap vtj1-terminfo.txt
+    but I haven't tested this.
+
+'ls' filename coloring:
+    The GNU 'ls' command, used in Linux, has the ability to color directory
+    entries by file type.  But it has its own (apparently compiled-in)
+    database as to what terminals are capable of this.  "vtj1" isn't
+    one of them.
+
+    I've been able to get this to work with the following:
+        dircolors -p > file1
+        edit file1 to add "TERM vtj1" among the other TERM lines
+        dircolors file1 > file2
+        . file2
+    The ". file2" step needs to be repeated every time you log in unless you
+    place it in a login dotfile like .profile.
+
+Backspace character:
+    In VTJ-1, the "backspace" key generates ASCII code 8 (backspace).
+    Some systems, including Linux, by default expect ASCII code 127 (delete).
+    They can be changed with the following command:
+        stty erase ^H
+    which would have to be repeated every time you log in unless you place
+    it in a login dotfile like .profile.
 
 +-+------------------------+-+
 | | Functionality of VTJ-1 | |

@@ -107,6 +107,8 @@ With brief descriptions; organized by conceptual component.
         rom.mem - Code to include in the VTJ-1 core
         scancodes2.csv - Table of keyboard scan codes
         scancodes2.html - Web page from which scancodes2.csv was derived
+        vtj1-terminfo.txt - terminfo source code for using 'vtj1' terminal
+                            on Linux on similar systems
     Other
         vtj1-notes.txt - Running notes during development process
         vtj1-overview.txt - Overview of the VTJ-1 project
@@ -819,7 +821,7 @@ Screen width: VTJ-1's display is 80 columns wide.  It does not have the
 VT102's 132 column mode.
 
 Screen height: VTJ-1's display is 40 rows high, or (depending on font)
-30 or 48 rows high.  It is not 24 rows high like VT102.
+30, 34 or 48 rows high.  It is not 24 rows high like VT102.
 
 The "bold" character attribute (^[[1m) is a little different from xterm and
 Mac OS X Terminal: It brightens the color of foreground pixels.  Where this

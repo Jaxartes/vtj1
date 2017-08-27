@@ -1,0 +1,32 @@
+# vtj1-terminfo.txt
+
+# Terminfo source file for VTJ-1 version 1.1.  This lets you use VTJ-1 in
+# Linux and most similar systems.  Instructions for use:
+#       tic -o ~/.terminfo vtj1-terminfo.txt
+#       TERM=vtj1 ; export TERM
+#
+# Based on the one for vt100, with changes as warranted.  Color related
+# attributes based on the one for xterm.
+
+vtj1|vtj-1|vtj1-1-1|VTJ-1 version 1.1,
+	am, bce, xenl, msgr, xon,
+	cols#80, it#8, lines#30, vt#3, colors#8, pairs#64,
+	acsc=``aaffggjjkkllmmnnooppqqrrssttuuvvwwxxyyzz{{||}}~~,
+	bel=^G, cr=^M, csr=\E[%i%p1%d;%p2%dr, tbc=\E[3g,
+	clear=\E[H\E[2J$<50>, el1=\E[1K$<3>, el=\E[K$<3>,
+	ed=\E[J$<50>, cup=\E[%i%p1%d;%p2%dH$<5>, cud1=^J,
+	home=\E[H, cub1=^H, cuf1=\E[C$<2>, cuu1=\E[A$<2>,
+	enacs=\E(B\E)0, smacs=^N, smam=\E[?7h,
+	bold=\E[1m, rev=\E[7m, smso=\E[7m,
+	smul=\E[4m, rmacs=^O, rmam=\E[?7l, sgr0=\E[m\017,
+	rmso=\E[m, rmul=\E[m, ka1=\EOq, ka3=\EOs, kb2=\EOr,
+	kbs=^H, kc1=\EOp, kc3=\EOn, kcud1=\EOB, kent=\EOM,
+	kcub1=\EOD,
+	kcuf1=\EOC, kcuu1=\EOA, rmkx=\E[?1l\E>, smkx=\E[?1h\E=,
+	cud=\E[%p1%dB,
+	cub=\E[%p1%dD, cuf=\E[%p1%dC, cuu=\E[%p1%dA,
+	rs2=\E>\E[?5l\E[?7h\E[?8h, rc=\E8, sc=\E7,
+	ind=^J, ri=\EM$<5>,
+	sgr=\E[0%?%p1%p6%|%t;1%;%?%p2%t;4%;%?%p1%p3%|%t;7%;%?%p4%t;5%;m%?%p9%t\016%e\017%;$<2>,
+	hts=\EH, ht=^I,
+	setab=\E[4%p1%dm, setaf=\E[3%p1%dm,
