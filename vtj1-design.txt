@@ -551,7 +551,12 @@ Escape sequences:
         Returns ^[[?6c which means "VT102".
         The Linux console returns the same.
         "DECID" ^[Z is a synonym.
-        ^[[0c is a synonym; other parameter values do nothing.
+        ^[[0c is a synonym; other parameter values do nothing, except:
+        ^[[0;86c requests VTJ-1 specific status in VTJ-1 1.1 and later;
+        response:
+            ^[[=86;84;74;...c    (OK)
+                where the '...' represents the version of VTJ-1;
+                for 1.1 the version is 49;46;49
     ^[[...C - "CUF" cursor right $1 cols to right margin OK
     ^[[...D - "CUB" cursor left $1 cols to left margin OK
     ^[[...f - "HVP" same as "CUP" (^[[...H) which see OK
