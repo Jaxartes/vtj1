@@ -842,6 +842,10 @@ In the lines ^[[...M inserts the character attributes are the currently
 set ones.  This is consistent with xterm and Mac OS X Terminal and with
 other operations that insert lines, but contrary to the VT102 manual.
 
+The erase-in-line sequence ^[[K, applied at the end of a line, behaves
+differently from "xterm" but the same as most of the other terminal
+emulators I've tested.  See the "rightel" test pattern in testpats.tcl.
+
 Key repeat applies to all keys; while on VT102 it didn't apply to return,
 enter, or esc.
 

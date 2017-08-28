@@ -10,8 +10,8 @@ TIMESPEC "TS_osc" = PERIOD "osc" 20.000ns;
 NET i_reset       LOC = "K14" | PULLDOWN;
 
 #serial interface
-NET "tx_ftdi"          LOC = "B16"; # transmit data (output to FTDI chip)
-NET "rx_ftdi"          LOC = "B15"; # receive data (input from FTDI chip)
+NET "tx_serial"          LOC = "B16"; # transmit data (output to FTDI chip)
+NET "rx_serial"          LOC = "B15"; # receive data (input from FTDI chip)
 #NET "RTS"          LOC = "C15"; # Request to send (active low output)
 #NET "CTS"          LOC = "C16"; # Clear to send (active low input)
 

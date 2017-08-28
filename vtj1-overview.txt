@@ -263,6 +263,11 @@ Backspace character:
     which would have to be repeated every time you log in unless you place
     it in a login dotfile like .profile.
 
+Other:
+    The 'resize' utility available on many systems, though designed for
+    'xterm', also works for VTJ-1 and is a useful command to run when
+    some program has restricted you to an 80x24 portion of the screen.
+
 +-+------------------------+-+
 | | Functionality of VTJ-1 | |
 +-+------------------------+-+

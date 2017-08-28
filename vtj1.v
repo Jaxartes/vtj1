@@ -53,16 +53,15 @@ module vtj1(
     output [3:1]o_video_g,
     output [3:2]o_video_b,
 `endif
-    // serial port through the FTDI chip (or not - you can point it somewhere
-    // else)
-    input rx_ftdi,
-    output tx_ftdi,
     // PS/2 port A
     inout ps2a_clk,
     inout ps2a_dat,
     // audio output
     output o_audio_l,
-    output o_audio_r
+    output o_audio_r,
+    // serial port - through the FTDI chip or wherever you want it to go
+    input rx_serial,
+    output tx_serial
 );
     // CCWID - character code width in bits
     // FONTSZ - font size in bytes
@@ -355,7 +354,7 @@ module vtj1(
         .clk(clk), .rst(rst), .adr(bus_adr[7:0]), .adr_d1(bus_adr_d1[7:0]),
         .red(io_red8), .wrt(bus_wrt), .wen(io_wen && bus_adr[11:8] == 4'd8),
         .irqa(alpha_irqs[8]), .irqb(beta_irqs[8]),
-        .rx_raw(rx_ftdi), .tx(tx_ftdi), .masterbaud(masterbaud)
+        .rx_raw(rx_serial), .tx(tx_serial), .masterbaud(masterbaud)
     );
 
     // I/O slot 9 - empty; for second serial port if there is one
