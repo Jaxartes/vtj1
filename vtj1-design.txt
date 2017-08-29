@@ -68,6 +68,13 @@ With brief descriptions; organized by conceptual component.
         reload.tcl - the host-side part of it
     Main software for the project
         vtj1.asm - 6502 assembly code for the VTJ-1 device
+    Host side tools
+        vtj1check.c
+        vtj1options.c
+            These two files together build a tool 'vtj1options' that can
+            be run on the host side to set VTJ-1 options such as cursor
+            shape.  Experimental, they have some problems and I'm sure
+            they're not as portable as I'd like.
     Early or limited-scope test programs
         check_sum_squares.tcl
         raget_test.asm
@@ -634,7 +641,7 @@ Escape sequences:
         4 - char 7 (BEL) produces a screen flash (default: on) OK
         5 - char 7 (BEL) produces a beep (default: on) OK
     ^[[?...l or h - reset/set DEC private mode
-        1 - cursor key mode OK
+        1 - cursor keys mode OK
         2 - ANSI mode NYI
             You disable this mode to go to VT52 emulation.
             Enabling it doesn't do anything.

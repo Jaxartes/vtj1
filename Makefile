@@ -42,3 +42,6 @@ rom.mem: vtj1.srec vtj1-config.cooked
 font.mem: vtj1-config.cooked
 	tclsh vtj1fonter.tcl `grep '^fonter_args=' vtj1-config.cooked | \
             cut -d= -f2-` out=font.mem
+
+# vtj1options: host side command to set VTJ-1 modes
+vtj1options: vtj1options.c vtj1check.c
