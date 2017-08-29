@@ -75,6 +75,8 @@ With brief descriptions; organized by conceptual component.
             be run on the host side to set VTJ-1 options such as cursor
             shape.  Experimental, they have some problems and I'm sure
             they're not as portable as I'd like.
+        vtj1_login_init.c
+            incomplete, not ready for use
     Early or limited-scope test programs
         check_sum_squares.tcl
         raget_test.asm
@@ -916,14 +918,10 @@ Hardware diagnostics and fault detection.
 
 This documents significant known bugs.
 
-There's a problem where it reports you don't have a keyboard connected,
-even though you do.  I don't know why this happens, because it's quite
-inconsistent.
-
 The interaction of inverse video with the "brighten foreground" bit is
 inconsistent between full-screen inverse video and per-character inverse
 video.  (Cause: one swaps foreground/background bits, the other
-swaps foreground/backgrounc colors.)
+swaps foreground/background colors.)
 
 If you press both shift keys, then release one while holding the other
 down, it'll act as if both have been released. (Cause: there's only one
@@ -936,3 +934,15 @@ At lower clock rates and higher baud rates there can be problems.  75MHz
 seems ok up to 230,400 baud (the highest I've tried).  50MHz is ok up to
 115,200 baud.  25MHz to 57,600 baud.  This is probably a consequence of
 using inefficient one-byte FIFOs in VTJ-1.
+
++-+----------+-+
+| | Releases | |
++-+----------+-+
+
+1.0 (tag Release_1_0) 24 December 2015 - Initial release.
+
+1.1 (tag Release_1_1) 28 August 2017 - Various improvements, most notably:
+    Ported to the Saanlima Pepino board.
+    Reworked the PS/2 (keyboard) interface code to fix various bugs.
+for the rest see the history on GitHub.
+

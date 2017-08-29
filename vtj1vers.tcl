@@ -12,7 +12,7 @@
 # right before building "vtj1.asm".
 
 # settings
-set version 1.0 ; # coarse version number
+set version 1.1 ; # coarse version number
 set srcfile "vtj1.asm" ; # file to read
 set dstfile1 "vtj1vers.asm" ; # file to write (with splash string)
 set dstfile2 "vtj1vers2.asm" ; # file to write (with version query response)
